@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PİYASA · Borsa Takip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Cabinet+Grotesk:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#FAFAF8; --surface:#FFF; --surface2:#F4F3EF; --surface3:#ECEAE3;
+  --border:#E0DDD5; --border2:#CCC9BF;
+  --text:#18170F; --text2:#5C5A52; --text3:#9E9C93;
+  --green:#1B6B41; --green-bg:#E7F5EE; --green-mid:#4CAF7A;
+  --red:#B83232; --red-bg:#FCEAEA;
+  --accent:#1A3FD4; --accent-light:#EEF1FD;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.shell{display:grid;grid-template-rows:52px 33px 1fr;height:100vh}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--surface);border-bottom:1.5px solid var(--border);z-index:200}
+.logo{font-size:17px;font-weight:900;letter-spacing:-.5px;display:flex;align-items:center;gap:6px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.market-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--green-bg);border:1px solid #C3E5D3;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--green)}
+.market-pill.closed{background:var(--surface3);border-color:var(--border2);color:var(--text3)}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green-mid);animation:blink 2s infinite}
+.market-pill.closed .pill-dot{background:var(--text3);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)}
+
+/* DATA BAR */
+.data-bar{display:flex;align-items:center;gap:8px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)}
+.ds-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.ds-dot.live{background:var(--green-mid);animation:blink 1.5s infinite}
+.ds-dot.err{background:var(--red)}
+#dsLabel{color:var(--text2)}
+.bar-sep{color:var(--border2)}
+.refresh-btn{margin-left:auto;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;font-family:'IBM Plex Mono',monospace;font-size:9px;cursor:pointer;color:var(--text2);transition:all .12s}
+.refresh-btn:hover{background:var(--surface2)}
+.refresh-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* MAIN */
+.main{display:grid;grid-template-columns:256px 1fr 316px;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1.5px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.sb-section{border-bottom:1px solid var(--border)}
+.sb-head{padding:12px 16px 6px;font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3)}
+.sb-search{margin:4px 12px 10px;display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px}
+.sb-search svg{flex-shrink:0;color:var(--text3)}
+.sb-search input{border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;color:var(--text);width:100%}
+.sb-search input::placeholder{color:var(--text3)}
+
+.stock-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;transition:background .12s}
+.stock-row:hover{background:var(--surface2)}
+.stock-row.sel{background:var(--accent-light)}
+.sr-ticker{font-size:13px;font-weight:700;letter-spacing:-.2px}
+.sr-name{font-size:10px;color:var(--text2);margin-top:1px}
+.sr-price{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right}
+.sr-chg{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:1px 5px;border-radius:4px;display:inline-block;margin-top:2px}
+.up{color:var(--green);background:var(--green-bg)}
+.dn{color:var(--red);background:var(--red-bg)}
+.fl{color:var(--text3);background:var(--surface3)}
+
+.com-row{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .12s}
+.com-row:hover{background:var(--surface2)}
+.com-row.sel{background:var(--accent-light)}
+.com-icon{font-size:18px;width:26px;text-align:center}
+.com-name{font-size:12px;font-weight:700}
+.com-unit{font-size:9px;color:var(--text3)}
+.com-price{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right}
+.com-chg{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-align:right;margin-top:2px}
+
+.skel{height:12px;background:var(--surface3);border-radius:3px;animation:shim 1.4s infinite}
+@keyframes shim{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* CENTER */
+.content{overflow-y:auto;display:flex;flex-direction:column}
+
+.hero-card{background:var(--surface);border-bottom:1.5px solid var(--border);padding:20px 24px 16px;flex-shrink:0}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.hero-ticker{font-size:26px;font-weight:900;letter-spacing:-1px;display:flex;align-items:center;gap:8px}
+.live-badge{font-size:9px;font-weight:700;letter-spacing:.8px;padding:2px 7px;border-radius:3px;border:1px solid}
+.live-badge.ok{background:var(--green-bg);color:var(--green);border-color:#C3E5D3}
+.live-badge.stale{background:var(--surface3);color:var(--text3);border-color:var(--border2)}
+.hero-name{font-size:13px;color:var(--text2);margin-top:2px}
+.hero-sector{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px}
+.hero-price{font-family:'IBM Plex Mono',monospace;font-size:30px;letter-spacing:-1px;line-height:1;transition:color .4s}
+.hero-chg-row{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+.hero-chg-abs{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500}
+.hero-chg-pct{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;padding:2px 8px;border-radius:5px}
+.hero-meta{display:flex;gap:20px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border)}
+.meta-lbl{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.meta-val{font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:2px}
+
+.chart-section{background:var(--surface);border-bottom:1.5px solid var(--border);padding:16px 24px;flex-shrink:0}
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-lbl{font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3)}
+.chart-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px}
+.tf-group{display:flex;gap:3px}
+.tf{padding:3px 9px;border-radius:5px;border:none;background:transparent;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .12s}
+.tf:hover{background:var(--surface2)}
+.tf.on{background:var(--text);color:#fff}
+#chartCanvas{width:100%!important;display:block}
+
+.content-section{padding:16px 24px;border-bottom:1px solid var(--border)}
+.cs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cs-title{font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3)}
+.cs-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3)}
+.cs-action{font-size:11px;color:var(--accent);cursor:pointer;font-weight:600;border:none;background:none;font-family:inherit}
+
+.emtia-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.emtia-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:all .15s}
+.emtia-card:hover,.emtia-card.sel{border-color:var(--accent);background:var(--accent-light)}
+.ec-icon{font-size:20px;margin-bottom:6px}
+.ec-name{font-size:11px;font-weight:700}
+.ec-unit{font-size:9px;color:var(--text3)}
+.ec-price{font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:4px}
+.ec-chg{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;margin-top:2px}
+
+.news-list{display:flex;flex-direction:column;gap:6px}
+.news-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;cursor:pointer;transition:border-color .12s}
+.news-card:hover{border-color:var(--border2)}
+.news-tags{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center}
+.ntag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;background:var(--surface3);color:var(--text2)}
+.snt{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;margin-left:auto;font-family:'IBM Plex Mono',monospace}
+.snt.pos{background:var(--green-bg);color:var(--green)}
+.snt.neg{background:var(--red-bg);color:var(--red)}
+.snt.neu{background:var(--surface3);color:var(--text3)}
+.news-hl{font-size:12px;font-weight:600;line-height:1.45}
+.news-meta-row{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-top:5px;display:flex;gap:8px}
+.news-ask{color:var(--accent);font-weight:600;margin-left:auto}
+
+.loading-row{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:12px;padding:4px 0}
+.spin{width:12px;height:12px;border:1.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* AI PANEL */
+.ai-panel{border-left:1.5px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.ai-head{padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ai-head-row{display:flex;align-items:center;gap:8px}
+.ai-chip{font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.ai-chip.ok{background:linear-gradient(135deg,#F55036,#FF8C42);color:#fff}
+.ai-chip.no{background:var(--surface3);color:var(--text3)}
+.ai-htitle{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.ai-hsub{font-size:10px;color:var(--text3);margin-top:3px}
+.ai-key-row{display:flex;gap:6px;margin-top:10px}
+.ai-key-inp{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--surface2);color:var(--text);outline:none;transition:border-color .15s}
+.ai-key-inp:focus{border-color:var(--accent)}
+.ai-key-inp::placeholder{color:var(--text3)}
+.ai-key-btn{padding:7px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700}
+.ai-key-btn:hover{opacity:.85}
+.ai-key-note{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:5px}
+.ai-key-note a{color:var(--accent);text-decoration:none}
+
+.ai-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.msg{animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-who{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px;color:var(--text3)}
+.msg.user .msg-who{color:var(--accent)}
+.msg-body{padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.65;background:var(--surface2);border:1px solid var(--border)}
+.msg.user .msg-body{background:var(--accent-light);border-color:#C8D4F8}
+.quick-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.qbtn{padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .12s}
+.qbtn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+.td{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:tdB 1.1s infinite;display:inline-block;margin:0 2px}
+.td:nth-child(2){animation-delay:.18s}.td:nth-child(3){animation-delay:.36s}
+@keyframes tdB{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+.ai-foot{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.ai-input-row{display:flex;gap:6px}
+.ai-ta{flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12.5px;color:var(--text);outline:none;background:var(--surface2);resize:none;transition:border-color .15s;line-height:1.5}
+.ai-ta:focus{border-color:var(--accent);background:var(--surface)}
+.ai-ta::placeholder{color:var(--text3)}
+.send-btn{padding:9px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;align-self:flex-end;transition:opacity .12s}
+.send-btn:hover{opacity:.85}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+.groq-footer{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:6px;text-align:center}
+.groq-footer.ok{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div>PİYASA</div>
+  <div class="topbar-right">
+    <div class="market-pill" id="mPill"><div class="pill-dot"></div><span id="mText">BIST</span></div>
+    <div class="clock" id="clk">--:--:--</div>
+  </div>
+</div>
+
+<div class="data-bar">
+  <div class="ds-dot" id="dsDot"></div>
+  <span id="dsLabel">Bağlanıyor...</span>
+  <span class="bar-sep">·</span>
+  <span id="lastUpd">—</span>
+  <span class="bar-sep">·</span>
+  <span id="nextUpd">—</span>
+  <button class="refresh-btn" id="refreshBtn" onclick="fetchAll()">↻ Yenile</button>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-head">Hisse Ara</div>
+      <div class="sb-search">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="searchInp" type="text" placeholder="THYAO, GARAN...">
+      </div>
+    </div>
+    <div class="sb-section" id="sbStocks"></div>
+    <div class="sb-section" id="sbComs"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="content">
+
+    <div class="hero-card">
+      <div class="hero-top">
+        <div>
+          <div class="hero-ticker" id="hTicker">—<span class="live-badge stale" id="liveBadge">—</span></div>
+          <div class="hero-name" id="hName">—</div>
+          <div class="hero-sector" id="hSector">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="hero-price" id="hPrice">—</div>
+          <div class="hero-chg-row">
+            <span class="hero-chg-abs" id="hAbs">—</span>
+            <span class="hero-chg-pct" id="hPct">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div><div class="meta-lbl">Açılış</div><div class="meta-val" id="mOpen">—</div></div>
+        <div><div class="meta-lbl">Gün Yük.</div><div class="meta-val" id="mHigh">—</div></div>
+        <div><div class="meta-lbl">Gün Düş.</div><div class="meta-val" id="mLow">—</div></div>
+        <div><div class="meta-lbl">Önceki Kap.</div><div class="meta-val" id="mPrev">—</div></div>
+        <div><div class="meta-lbl">52H Yük.</div><div class="meta-val" id="m52h">—</div></div>
+        <div><div class="meta-lbl">Hacim</div><div class="meta-val" id="mVol">—</div></div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-head">
+        <div>
+          <div class="chart-lbl">FİYAT GRAFİĞİ</div>
+          <div class="chart-sub" id="chartSub">Yahoo Finance · Gerçek Veri</div>
+        </div>
+        <div class="tf-group">
+          <button class="tf on" onclick="setTf(this,'1d')">1G</button>
+          <button class="tf" onclick="setTf(this,'5d')">5G</button>
+          <button class="tf" onclick="setTf(this,'1mo')">1A</button>
+          <button class="tf" onclick="setTf(this,'3mo')">3A</button>
+          <button class="tf" onclick="setTf(this,'1y')">1Y</button>
+        </div>
+      </div>
+      <canvas id="chartCanvas" height="160"></canvas>
+    </div>
+
+    <div class="content-section">
+      <div class="cs-head">
+        <span class="cs-title">Emtia Piyasaları</span>
+        <span class="cs-note" id="emtiaNote">—</span>
+      </div>
+      <div class="emtia-grid" id="emtiaGrid"></div>
+    </div>
+
+    <div class="content-section">
+      <div class="cs-head">
+        <span class="cs-title">Güncel Haberler</span>
+        <button class="cs-action" onclick="loadNews()">↻ Yenile</button>
+      </div>
+      <div class="news-list" id="newsList"><div class="loading-row"><div class="spin"></div>Yükleniyor...</div></div>
+    </div>
+
+  </div><!-- .content -->
+
+  <!-- AI PANEL -->
+  <div class="ai-panel">
+    <div class="ai-head">
+      <div class="ai-head-row">
+        <div class="ai-chip no" id="aiChip">GROQ</div>
+        <div class="ai-htitle">Piyasa Analisti</div>
+      </div>
+      <div class="ai-hsub">Gerçek fiyat + haber bazlı AI yorum</div>
+      <div class="ai-key-row">
+        <input class="ai-key-inp" id="groqKeyInp" type="password" placeholder="gsk_...">
+        <button class="ai-key-btn" onclick="saveKey()">Bağla</button>
+      </div>
+      <div class="ai-key-note">Ücretsiz key: <a href="https://console.groq.com" target="_blank">console.groq.com</a> → API Keys</div>
+    </div>
+    <div class="ai-msgs" id="aiMsgs">
+      <div class="msg ai">
+        <div class="msg-who">Analist</div>
+        <div class="msg-body">Merhaba! Groq API key bağlandıktan sonra <strong>gerçek Yahoo Finance verileriyle</strong> analiz yapabilirim. 📊<br><br>Yukarıya Groq key'inizi girin.</div>
+      </div>
+      <div class="msg ai">
+        <div class="msg-who">Hızlı Sorular</div>
+        <div class="quick-wrap">
+          <button class="qbtn" onclick="analyzeSelected()">Seçili hisseyi analiz et</button>
+          <button class="qbtn" onclick="quickAsk('BIST genel durumunu ve öne çıkan sektörleri değerlendir')">BIST Genel</button>
+          <button class="qbtn" onclick="quickAsk('Altın için kısa vadeli görüşün nedir?')">Altın</button>
+          <button class="qbtn" onclick="quickAsk('Bugün en çok dikkat çeken hisse hangisi ve neden?')">Günün Hissesi</button>
+          <button class="qbtn" onclick="quickAsk('Portföy için emtia ile hisse dengesi nasıl olmalı?')">Portföy Dengesi</button>
+        </div>
+      </div>
+    </div>
+    <div class="ai-foot">
+      <div class="ai-input-row">
+        <textarea class="ai-ta" id="aiInp" rows="2" placeholder="Soru sorun... (Enter gönder, Shift+Enter satır)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">Gönder</button>
+      </div>
+      <div class="groq-footer" id="groqFt">⚡ Groq API key gerekli · console.groq.com</div>
+    </div>
+  </div>
+
+</div><!-- .main -->
+</div><!-- .shell -->
+
+<script>
+// ─────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────
+// Vercel'e deploy edilince otomatik kendi URL'ini kullanır.
+// Lokalde test etmek için: http://localhost:3000/api/yahoo?url=...
+const API_BASE = '/api/yahoo';
+
+const BIST = [
+  {t:'THYAO.IS',d:'THYAO',n:'Türk Hava Yolları',s:'Ulaşım'},
+  {t:'GARAN.IS',d:'GARAN',n:'Garanti Bankası',s:'Bankacılık'},
+  {t:'AKBNK.IS',d:'AKBNK',n:'Akbank',s:'Bankacılık'},
+  {t:'ASELS.IS',d:'ASELS',n:'ASELSAN',s:'Savunma'},
+  {t:'KCHOL.IS',d:'KCHOL',n:'Koç Holding',s:'Holding'},
+  {t:'SISE.IS',d:'SISE',n:'Şişecam',s:'Cam/Kimya'},
+  {t:'EREGL.IS',d:'EREGL',n:'Ereğli D.Ç.',s:'Metal'},
+  {t:'BIMAS.IS',d:'BIMAS',n:'BİM Mağazaları',s:'Perakende'},
+  {t:'FROTO.IS',d:'FROTO',n:'Ford Otomotiv',s:'Otomotiv'},
+  {t:'TUPRS.IS',d:'TUPRS',n:'Tüpraş',s:'Enerji'},
+  {t:'TOASO.IS',d:'TOASO',n:'Tofaş Oto',s:'Otomotiv'},
+  {t:'PGSUS.IS',d:'PGSUS',n:'Pegasus',s:'Ulaşım'},
+];
+
+const COMS = [
+  {id:'gold',  sym:'GC=F', icon:'🥇',n:'Altın',     u:'USD/oz'},
+  {id:'silver',sym:'SI=F', icon:'🥈',n:'Gümüş',     u:'USD/oz'},
+  {id:'oil',   sym:'CL=F', icon:'🛢️',n:'Ham Petrol', u:'USD/bbl'},
+  {id:'copper',sym:'HG=F', icon:'⚙️',n:'Bakır',     u:'USD/lb'},
+  {id:'wheat', sym:'ZW=F', icon:'🌾',n:'Buğday',    u:'USD/bu'},
+  {id:'usdtry',sym:'TRY=X',icon:'💵',n:'USD/TRY',   u:'Kur'},
+];
+
+// ─────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────
+let stocks = {}, coms = {};
+let selTicker = 'THYAO.IS', selComId = null;
+let groqKey = localStorage.getItem('groq_key') || '';
+let chatHistory = [], newsData = [];
+let currentTf = '1d', chartData = [];
+let fetching = false, countdown = 15, lastFetch = null;
+
+// ─────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────
+window.onload = () => {
+  initKey();
+  renderSkeletons();
+  fetchAll();
+  startClock();
+  checkMarket();
+  loadNews();
+  startCountdown();
+  document.getElementById('searchInp').addEventListener('input', e => renderStocks(e.target.value));
+  document.getElementById('aiInp').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  });
+  window.addEventListener('resize', redrawChart);
+};
+
+// ─────────────────────────────────────────────────
+// PROXY FETCH
+// ─────────────────────────────────────────────────
+async function yFetch(yahooUrl) {
+  const res = await fetch(`${API_BASE}?url=${encodeURIComponent(yahooUrl)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ─────────────────────────────────────────────────
+// FETCH ALL
+// ─────────────────────────────────────────────────
+async function fetchAll() {
+  if (fetching) return;
+  fetching = true;
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin" style="display:inline-block"></div>';
+  setStatus('loading');
+
+  try {
+    await Promise.all([fetchStocks(), fetchComs()]);
+    lastFetch = new Date();
+    setStatus('live');
+    countdown = 15;
+  } catch (e) {
+    console.warn('fetchAll error:', e);
+    setStatus('error');
+  }
+
+  fetching = false;
+  btn.disabled = false;
+  btn.textContent = '↻ Yenile';
+}
+
+async function fetchStocks() {
+  const syms = BIST.map(s => s.t).join(',');
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketOpen,regularMarketDayHigh,regularMarketDayLow,regularMarketPreviousClose,regularMarketVolume,fiftyTwoWeekHigh`;
+  const data = await yFetch(url);
+  (data?.quoteResponse?.result || []).forEach(q => {
+    stocks[q.symbol] = {
+      price: q.regularMarketPrice,
+      change: q.regularMarketChange,
+      changeP: q.regularMarketChangePercent,
+      open: q.regularMarketOpen,
+      high: q.regularMarketDayHigh,
+      low: q.regularMarketDayLow,
+      prev: q.regularMarketPreviousClose,
+      vol: fmtVol(q.regularMarketVolume),
+      h52: q.fiftyTwoWeekHigh,
+    };
+  });
+  renderStocks(document.getElementById('searchInp').value);
+  if (selTicker && stocks[selTicker]) updateHero();
+  fetchChart(selTicker, currentTf);
+}
+
+async function fetchComs() {
+  const syms = COMS.map(c => c.sym).join(',');
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
+  const data = await yFetch(url);
+  (data?.quoteResponse?.result || []).forEach(q => {
+    const c = COMS.find(x => x.sym === q.symbol);
+    if (c) coms[c.id] = { price: q.regularMarketPrice, change: q.regularMarketChange, changeP: q.regularMarketChangePercent };
+  });
+  renderComs();
+  document.getElementById('emtiaNote').textContent = 'Yahoo Finance · ' + timeStr();
+}
+
+async function fetchChart(sym, period) {
+  try {
+    const ivMap = { '1d':'5m','5d':'15m','1mo':'1d','3mo':'1d','1y':'1wk' };
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=${ivMap[period]||'5m'}&range=${period}`;
+    const data = await yFetch(url);
+    const r = data?.chart?.result?.[0];
+    if (!r) return;
+    const ts = r.timestamp || [];
+    const cl = r.indicators?.quote?.[0]?.close || [];
+    chartData = ts.map((t,i) => ({t: new Date(t*1000), v: cl[i]})).filter(d => d.v != null);
+    const meta = BIST.find(s=>s.t===sym);
+    document.getElementById('chartSub').textContent = `${meta?.d||sym} · ${period.toUpperCase()} · ${ivMap[period]||'5m'} · Yahoo Finance`;
+    redrawChart();
+  } catch(e) {
+    console.warn('chart error:', e);
+  }
+}
+
+// ─────────────────────────────────────────────────
+// COUNTDOWN
+// ─────────────────────────────────────────────────
+function startCountdown() {
+  setInterval(() => {
+    countdown--;
+    if (countdown <= 0) { countdown = 15; fetchAll(); }
+    document.getElementById('nextUpd').textContent = `${countdown}sn`;
+    if (lastFetch) document.getElementById('lastUpd').textContent = 'Son: ' + timeStr(lastFetch);
+  }, 1000);
+}
+
+// ─────────────────────────────────────────────────
+// STATUS
+// ─────────────────────────────────────────────────
+function setStatus(s) {
+  const dot = document.getElementById('dsDot');
+  const lbl = document.getElementById('dsLabel');
+  const badge = document.getElementById('liveBadge');
+  if (s === 'live') {
+    dot.className='ds-dot live'; lbl.textContent='Yahoo Finance · Gerçek Veri';
+    badge.textContent='CANLI'; badge.className='live-badge ok';
+  } else if (s === 'loading') {
+    dot.className='ds-dot'; lbl.textContent='Veri çekiliyor...';
+  } else {
+    dot.className='ds-dot err'; lbl.textContent='Bağlantı hatası — demo veri';
+    badge.textContent='HATA'; badge.className='live-badge stale';
+  }
+}
+
+// ─────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────
+function renderSkeletons() {
+  document.getElementById('sbStocks').innerHTML = `<div class="sb-head">BIST 30</div>` +
+    BIST.map(s => `<div class="stock-row ${s.t===selTicker?'sel':''}" onclick="selectStock('${s.t}')">
+      <div><div class="sr-ticker">${s.d}</div><div class="sr-name">${s.n}</div></div>
+      <div style="text-align:right"><div class="skel" style="width:48px;height:12px;margin-bottom:4px"></div><div class="skel" style="width:38px;height:10px"></div></div>
+    </div>`).join('');
+
+  document.getElementById('sbComs').innerHTML = `<div class="sb-head">Emtia</div>` +
+    COMS.map(c => `<div class="com-row" onclick="selectCom('${c.id}')">
+      <div class="com-icon">${c.icon}</div>
+      <div style="flex:1"><div class="com-name">${c.n}</div><div class="com-unit">${c.u}</div></div>
+      <div><div class="skel" style="width:48px;height:12px;margin-bottom:4px"></div><div class="skel" style="width:36px;height:10px"></div></div>
+    </div>`).join('');
+
+  document.getElementById('emtiaGrid').innerHTML = COMS.map(c => `
+    <div class="emtia-card" onclick="selectCom('${c.id}')">
+      <div class="ec-icon">${c.icon}</div>
+      <div class="ec-name">${c.n}</div><div class="ec-unit">${c.u}</div>
+      <div class="skel" style="width:60px;height:13px;margin-top:6px"></div>
+    </div>`).join('');
+}
+
+function renderStocks(filter = '') {
+  const fl = filter.toUpperCase();
+  const list = BIST.filter(s => !fl || s.d.includes(fl) || s.n.toUpperCase().includes(fl));
+  document.getElementById('sbStocks').innerHTML = `<div class="sb-head">BIST 30</div>` + list.map(s => {
+    const q = stocks[s.t];
+    const dir = q?.changeP;
+    const cls = dir == null ? 'fl' : dir > 0 ? 'up' : dir < 0 ? 'dn' : 'fl';
+    const chg = dir == null ? '—' : `${dir > 0 ? '+' : ''}${dir.toFixed(2)}%`;
+    return `<div class="stock-row ${s.t===selTicker?'sel':''}" onclick="selectStock('${s.t}')">
+      <div><div class="sr-ticker">${s.d}</div><div class="sr-name">${s.n}</div></div>
+      <div style="text-align:right">
+        <div class="sr-price">${q ? q.price.toFixed(2) : '—'}</div>
+        <div class="sr-chg ${cls}">${chg}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderComs() {
+  document.getElementById('sbComs').innerHTML = `<div class="sb-head">Emtia</div>` + COMS.map(c => {
+    const q = coms[c.id];
+    const dir = q?.changeP;
+    const cls = dir == null ? 'fl' : dir > 0 ? 'up' : dir < 0 ? 'dn' : 'fl';
+    return `<div class="com-row ${selComId===c.id?'sel':''}" onclick="selectCom('${c.id}')">
+      <div class="com-icon">${c.icon}</div>
+      <div style="flex:1"><div class="com-name">${c.n}</div><div class="com-unit">${c.u}</div></div>
+      <div style="text-align:right">
+        <div class="com-price">${q ? q.price.toFixed(2) : '—'}</div>
+        <div class="com-chg ${cls}">${dir == null ? '—' : (dir>0?'+':'')+dir.toFixed(2)+'%'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('emtiaGrid').innerHTML = COMS.map(c => {
+    const q = coms[c.id];
+    const dir = q?.changeP;
+    const cls = dir == null ? 'fl' : dir > 0 ? 'up' : dir < 0 ? 'dn' : 'fl';
+    return `<div class="emtia-card ${selComId===c.id?'sel':''}" onclick="selectCom('${c.id}')">
+      <div class="ec-icon">${c.icon}</div>
+      <div class="ec-name">${c.n}</div><div class="ec-unit">${c.u}</div>
+      <div class="ec-price">${q ? q.price.toFixed(2) : '—'}</div>
+      <div class="ec-chg ${cls}">${dir == null ? '—' : (dir>0?'+':'')+dir.toFixed(2)+'%'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────
+// SELECT
+// ─────────────────────────────────────────────────
+function selectStock(sym) {
+  selTicker = sym; selComId = null;
+  const meta = BIST.find(s => s.t === sym);
+  document.getElementById('hTicker').innerHTML = `${meta?.d||sym} <span class="live-badge ${stocks[sym]?'ok':'stale'}" id="liveBadge">${stocks[sym]?'CANLI':'—'}</span>`;
+  document.getElementById('hName').textContent = meta?.n || sym;
+  document.getElementById('hSector').textContent = `${meta?.s||''} · BIST · ₺`;
+  updateHero();
+  renderStocks(document.getElementById('searchInp').value);
+  fetchChart(sym, currentTf);
+}
+
+function selectCom(id) {
+  selComId = id; selTicker = null;
+  const meta = COMS.find(c => c.id === id);
+  const q = coms[id];
+  document.getElementById('hTicker').innerHTML = `${meta?.n||id} <span class="live-badge ${q?'ok':'stale'}" id="liveBadge">${q?'CANLI':'—'}</span>`;
+  document.getElementById('hName').textContent = `${meta?.n} · ${meta?.u}`;
+  document.getElementById('hSector').textContent = 'EMTİA · YAHOO FINANCE';
+  if (q) {
+    const dir = q.changeP >= 0;
+    document.getElementById('hPrice').textContent = q.price.toFixed(2);
+    document.getElementById('hAbs').textContent = (dir?'+':'')+q.change.toFixed(4);
+    document.getElementById('hAbs').className = 'hero-chg-abs '+(dir?'up':'dn');
+    document.getElementById('hPct').textContent = (dir?'+':'')+q.changeP.toFixed(2)+'%';
+    document.getElementById('hPct').className = 'hero-chg-pct '+(dir?'up':'dn');
+  }
+  ['mOpen','mHigh','mLow','mPrev','m52h','mVol'].forEach(id => document.getElementById(id).textContent = '—');
+  renderComs();
+  fetchChart(meta?.sym || id, currentTf);
+}
+
+function updateHero() {
+  if (!selTicker) return;
+  const q = stocks[selTicker];
+  if (!q) return;
+  const dir = q.changeP >= 0;
+  const priceEl = document.getElementById('hPrice');
+  const old = parseFloat(priceEl.textContent) || 0;
+  priceEl.textContent = q.price.toFixed(2);
+  if (old && old !== q.price) {
+    priceEl.style.color = q.price > old ? 'var(--green)' : 'var(--red)';
+    setTimeout(() => priceEl.style.color = '', 500);
+  }
+  document.getElementById('hAbs').textContent = (dir?'+':'')+q.change.toFixed(2)+' ₺';
+  document.getElementById('hAbs').className = 'hero-chg-abs '+(dir?'up':'dn');
+  document.getElementById('hPct').textContent = (dir?'+':'')+q.changeP.toFixed(2)+'%';
+  document.getElementById('hPct').className = 'hero-chg-pct '+(dir?'up':'dn');
+  document.getElementById('mOpen').textContent = q.open?.toFixed(2)||'—';
+  document.getElementById('mHigh').textContent = q.high?.toFixed(2)||'—';
+  document.getElementById('mLow').textContent  = q.low?.toFixed(2)||'—';
+  document.getElementById('mPrev').textContent  = q.prev?.toFixed(2)||'—';
+  document.getElementById('m52h').textContent   = q.h52?.toFixed(2)||'—';
+  document.getElementById('mVol').textContent   = q.vol||'—';
+}
+
+// ─────────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────────
+function setTf(btn, tf) {
+  currentTf = tf;
+  document.querySelectorAll('.tf').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const sym = selTicker || COMS.find(c=>c.id===selComId)?.sym;
+  if (sym) fetchChart(sym, tf);
+}
+
+function redrawChart() {
+  const canvas = document.getElementById('chartCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 48;
+  const H = 160;
+  canvas.style.width = W + 'px';
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  let data = chartData.map(d => d.v);
+  let labels = chartData.map(d =>
+    (currentTf==='1d'||currentTf==='5d')
+      ? d.t.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})
+      : d.t.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'})
+  );
+
+  if (data.length < 2) {
+    // Veri gelene kadar boş durum
+    ctx.fillStyle = '#9E9C93';
+    ctx.font = '12px Cabinet Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Grafik verisi yükleniyor...', W/2, H/2);
+    return;
+  }
+
+  const q = selTicker && stocks[selTicker];
+  const isUp = q ? q.changeP >= 0 : selComId && coms[selComId] ? coms[selComId].changeP >= 0 : true;
+  const col = isUp ? '#1B6B41' : '#B83232';
+  const aCol = isUp ? 'rgba(27,107,65,' : 'rgba(184,50,50,';
+
+  const pad = {t:10, r:12, b:28, l:58};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  const mn = Math.min(...data), mx = Math.max(...data), rng = mx-mn || 1;
+  const xOf = i => pad.l + (i/(data.length-1))*cw;
+  const yOf = v => pad.t + ch - ((v-mn)/rng)*ch;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 1;
+  for (let i=0; i<=4; i++) {
+    const y = pad.t + (ch/4)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+    ctx.fillStyle='#9E9C93'; ctx.font='10px "IBM Plex Mono",monospace'; ctx.textAlign='right';
+    ctx.fillText((mx-((mx-mn)/4)*i).toFixed(2), pad.l-5, y+3.5);
+  }
+
+  // area
+  const g = ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+  g.addColorStop(0, aCol+'0.18)'); g.addColorStop(1, aCol+'0.01)');
+  ctx.beginPath(); ctx.moveTo(xOf(0), yOf(data[0]));
+  for (let i=1; i<data.length; i++) ctx.lineTo(xOf(i), yOf(data[i]));
+  ctx.lineTo(xOf(data.length-1), pad.t+ch); ctx.lineTo(xOf(0), pad.t+ch);
+  ctx.closePath(); ctx.fillStyle=g; ctx.fill();
+
+  // line
+  ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (let i=1; i<data.length; i++) ctx.lineTo(xOf(i), yOf(data[i]));
+  ctx.stroke();
+
+  // dot
+  const lx=xOf(data.length-1), ly=yOf(data[data.length-1]);
+  ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2);
+  ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+
+  // x labels
+  ctx.fillStyle='#9E9C93'; ctx.font='9px "IBM Plex Mono",monospace'; ctx.textAlign='center';
+  const step = Math.max(1, Math.ceil(data.length/6));
+  for (let i=0; i<data.length; i+=step) ctx.fillText(labels[i]||'', xOf(i), H-5);
+}
+
+// ─────────────────────────────────────────────────
+// CLOCK & MARKET
+// ─────────────────────────────────────────────────
+function startClock() {
+  const t = () => document.getElementById('clk').textContent = new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Europe/Istanbul'});
+  t(); setInterval(t, 1000);
+}
+function checkMarket() {
+  const now = new Date();
+  const h = parseInt(now.toLocaleString('tr-TR',{hour:'2-digit',timeZone:'Europe/Istanbul',hour12:false}));
+  const d = now.getDay();
+  const open = d>=1 && d<=5 && h>=10 && h<18;
+  document.getElementById('mPill').className = open ? 'market-pill' : 'market-pill closed';
+  document.getElementById('mText').textContent = open ? 'BIST Açık' : 'BIST Kapalı';
+}
+
+// ─────────────────────────────────────────────────
+// NEWS
+// ─────────────────────────────────────────────────
+const FALLBACK_NEWS = [
+  {hl:'Türk Hava Yolları yolcu kapasitesini artırdı',src:'Bloomberg HT',t:'2sa',snt:'pozitif',tags:['THYAO']},
+  {hl:'Merkez Bankası toplantısı öncesi bankacılık sektörü temkinli',src:'Milliyet',t:'3sa',snt:'nötr',tags:['GARAN','AKBNK']},
+  {hl:'Altın küresel belirsizlikte zirveye ulaştı',src:'Reuters',t:'4sa',snt:'pozitif',tags:['Altın']},
+  {hl:"ASELSAN yeni savunma ihracat anlaşması imzaladı",src:'AA',t:'5sa',snt:'pozitif',tags:['ASELS']},
+  {hl:'Brent petrol OPEC+ kararıyla 82 doları geçti',src:'Reuters',t:'6sa',snt:'nötr',tags:['Petrol']},
+  {hl:'Ereğli çelik fiyat düşüşüyle geriledi',src:'Dünya',t:'7sa',snt:'negatif',tags:['EREGL']},
+];
+
+async function loadNews() {
+  document.getElementById('newsList').innerHTML = '<div class="loading-row"><div class="spin"></div>Haberler yükleniyor...</div>';
+  if (!groqKey) { newsData = FALLBACK_NEWS; renderNews(); return; }
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body: JSON.stringify({
+        model:'llama-3.3-70b-versatile', max_tokens:700,
+        messages:[
+          {role:'system',content:'Türk finans haber editörüsün. SADECE JSON döndür: {"news":[{"hl":"başlık","src":"kaynak","t":"Xsa","snt":"pozitif|negatif|nötr","tags":["THYAO"]}]}'},
+          {role:'user',content:'Bugünün en önemli 6 BIST ve emtia haberini JSON olarak ver.'}
+        ]
+      })
+    });
+    const d = await res.json();
+    const parsed = JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
+    newsData = parsed.news || FALLBACK_NEWS;
+  } catch(e) { newsData = FALLBACK_NEWS; }
+  renderNews();
+}
+
+function renderNews() {
+  const sm={pozitif:'pos',negatif:'neg',nötr:'neu'};
+  const sl={pozitif:'↑ Pozitif',negatif:'↓ Negatif',nötr:'→ Nötr'};
+  document.getElementById('newsList').innerHTML = newsData.map(n => `
+    <div class="news-card" onclick="askAboutNews(${JSON.stringify(n.hl)})">
+      <div class="news-tags">${(n.tags||[]).map(t=>`<span class="ntag">${t}</span>`).join('')}<span class="snt ${sm[n.snt]||'neu'}">${sl[n.snt]||'→ Nötr'}</span></div>
+      <div class="news-hl">${n.hl}</div>
+      <div class="news-meta-row"><span>${n.src}</span><span>${n.t} önce</span><span class="news-ask">AI'ya sor →</span></div>
+    </div>`).join('');
+}
+
+function askAboutNews(hl) {
+  document.getElementById('aiInp').value = `Bu haber hakkında yorum yap: "${hl}"`;
+  document.getElementById('aiInp').focus();
+}
+
+// ─────────────────────────────────────────────────
+// GROQ KEY
+// ─────────────────────────────────────────────────
+function initKey() {
+  if (groqKey) {
+    document.getElementById('groqKeyInp').value = '••••••••••••••••';
+    updateKeyUI(true);
+  }
+}
+function saveKey() {
+  const v = document.getElementById('groqKeyInp').value.trim();
+  if (!v || v.startsWith('•')) return;
+  groqKey = v; localStorage.setItem('groq_key', v);
+  updateKeyUI(true);
+  appendMsg('ai', '✅ Groq bağlandı! Artık gerçek Yahoo Finance verileriyle analiz yapabilirim. Ne sormak istersiniz?');
+  loadNews();
+}
+function updateKeyUI(ok) {
+  document.getElementById('aiChip').textContent = ok ? 'GROQ ✓' : 'GROQ';
+  document.getElementById('aiChip').className = ok ? 'ai-chip ok' : 'ai-chip no';
+  document.getElementById('groqFt').textContent = ok ? '✓ Groq · llama-3.3-70b-versatile · Bağlı' : '⚡ Groq API key gerekli · console.groq.com';
+  document.getElementById('groqFt').className = ok ? 'groq-footer ok' : 'groq-footer';
+}
+
+// ─────────────────────────────────────────────────
+// AI CHAT
+// ─────────────────────────────────────────────────
+function analyzeSelected() {
+  if (selTicker) {
+    const m = BIST.find(s=>s.t===selTicker);
+    const q = stocks[selTicker];
+    if (q) quickAsk(`${m?.d} (${m?.n}) hissesini analiz et. Güncel: ${q.price.toFixed(2)}₺, Değişim: ${q.changeP>0?'+':''}${q.changeP?.toFixed(2)}%, Açılış: ${q.open?.toFixed(2)}, Gün: ${q.low?.toFixed(2)}–${q.high?.toFixed(2)}, Hacim: ${q.vol}`);
+    else quickAsk(`${selTicker} hissesini analiz et`);
+  } else if (selComId) {
+    const m = COMS.find(c=>c.id===selComId);
+    const q = coms[selComId];
+    quickAsk(`${m?.n} emtiasını analiz et. Güncel: ${q?.price?.toFixed(2)||'?'} ${m?.u}, Değişim: ${q?.changeP>0?'+':''}${q?.changeP?.toFixed(2)||'?'}%`);
+  } else {
+    quickAsk('Piyasa genelini değerlendir');
+  }
+}
+
+function quickAsk(q) {
+  document.getElementById('aiInp').value = q;
+  sendMsg();
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('aiInp');
+  const btn = document.getElementById('sendBtn');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  if (!groqKey) { appendMsg('ai','⚠️ Groq API key girilmedi. Sol panelden ekleyin.'); return; }
+
+  inp.value = ''; btn.disabled = true;
+  appendMsg('user', msg);
+  const typing = appendTyping();
+
+  const stockCtx = BIST.map(s => { const q=stocks[s.t]; return q ? `${s.d}:${q.price.toFixed(1)}₺(${q.changeP>0?'+':''}${q.changeP?.toFixed(1)}%)` : s.d+':?'; }).join(', ');
+  const comCtx   = COMS.map(c => { const q=coms[c.id]; return q ? `${c.n}:${q.price.toFixed(2)}(${q.changeP>0?'+':''}${q.changeP?.toFixed(1)}%)` : c.n+':?'; }).join(', ');
+  const newsCtx  = newsData.map(n=>n.hl).join(' | ');
+  const selCtx   = selTicker && stocks[selTicker]
+    ? `Seçili: ${BIST.find(s=>s.t===selTicker)?.d} ${stocks[selTicker].price.toFixed(2)}₺ (${stocks[selTicker].changeP?.toFixed(2)}%)`
+    : selComId && coms[selComId] ? `Seçili emtia: ${COMS.find(c=>c.id===selComId)?.n} ${coms[selComId].price.toFixed(2)}` : '';
+
+  chatHistory.push({role:'user', content:msg});
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile', max_tokens:700,
+        messages:[
+          {role:'system', content:`Sen deneyimli bir Türk borsa ve emtia analistisin. Gerçek zamanlı verilerle kısa ve değerli analizler yaparsın.
+
+GERÇEK VERİ (Yahoo Finance · ${timeStr()}):
+BIST: ${stockCtx}
+Emtia: ${comCtx}
+${selCtx}
+Haberler: ${newsCtx}
+
+Kurallar: Somut rakamlar kullan. Kısa + orta vadeli değerlendir. Risk/fırsat belirt. 200-300 kelime. Türkçe, profesyonel. Sona "Bu yatırım tavsiyesi değildir" ekle.`},
+          ...chatHistory
+        ]
+      })
+    });
+    const d = await res.json();
+    const reply = d.choices?.[0]?.message?.content || 'Yanıt alınamadı.';
+    chatHistory.push({role:'assistant', content:reply});
+    typing.remove();
+    appendMsg('ai', reply);
+  } catch(e) {
+    typing.remove();
+    appendMsg('ai','❌ Groq bağlantı hatası. API key\'inizi kontrol edin.');
+    chatHistory.pop();
+  }
+  btn.disabled = false;
+}
+
+function appendMsg(role, text) {
+  const c = document.getElementById('aiMsgs');
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  d.innerHTML = `<div class="msg-who">${role==='user'?'Siz':'Analist'}</div><div class="msg-body">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight; return d;
+}
+function appendTyping() {
+  const c = document.getElementById('aiMsgs');
+  const d = document.createElement('div');
+  d.className = 'msg ai';
+  d.innerHTML = '<div class="msg-who">Analist</div><div class="msg-body"><span class="td"></span><span class="td"></span><span class="td"></span></div>';
+  c.appendChild(d); c.scrollTop = c.scrollHeight; return d;
+}
+
+// ─────────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────────
+function fmtVol(v) {
+  if (!v) return '—';
+  if (v>=1e9) return (v/1e9).toFixed(1)+'Milyar';
+  if (v>=1e6) return (v/1e6).toFixed(1)+'M';
+  if (v>=1e3) return (v/1e3).toFixed(0)+'K';
+  return String(v);
+}
+function timeStr(d) {
+  d = d || new Date();
+  return d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Europe/Istanbul'});
+}
+</script>
+</body>
+</html>
