@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menü Yönetim Paneli</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        /* ── GİRİŞ EKRANI ── */
+        #loginScreen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 340px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 22px;
+        }
+
+        .login-box p {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            margin-bottom: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        /* ── GENEL BUTONLAR ── */
+        .btn {
+            padding: 11px 20px;
+            border: none;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .btn-outline:hover { background: #f0f0ff; }
+
+        .btn-sm { padding: 7px 12px; font-size: 12px; }
+
+        /* ── ANA PANEL ── */
+        #adminPanel { display: none; }
+
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+
+        .topbar h1 { font-size: 20px; }
+        .topbar span { font-size: 13px; opacity: 0.8; }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .main-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* ── KATEGORİ PANELİ ── */
+        .panel {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #f8f9ff;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-size: 15px;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .panel-body { padding: 16px 20px; }
+
+        .cat-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+
+        .cat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: 2px solid transparent;
+        }
+
+        .cat-item:hover { background: #f5f5ff; }
+        .cat-item.active { background: #f0f0ff; border-color: #667eea; }
+
+        .cat-item-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .cat-item-count {
+            font-size: 11px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-weight: 700;
+        }
+
+        .cat-delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+        .cat-delete-btn:hover { color: #ef4444; }
+
+        .add-cat-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-cat-row input {
+            flex: 1;
+            padding: 9px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .add-cat-row input:focus { outline: none; border-color: #667eea; }
+
+        /* ── YEMEK LİSTESİ PANELİ ── */
+        .food-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .food-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .drag-handle {
+            color: #ccc;
+            font-size: 18px;
+            cursor: grab;
+            padding: 0 4px;
+            flex-shrink: 0;
+            user-select: none;
+            line-height: 1;
+        }
+        .drag-handle:active { cursor: grabbing; }
+
+        .food-item.dragging {
+            opacity: 0.4;
+            border: 2px dashed #667eea;
+            background: #f0f0ff;
+        }
+        .food-item.drag-over {
+            border-color: #667eea;
+            background: #f5f3ff;
+            transform: scale(1.01);
+        }
+
+        .food-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .food-item:hover { border-color: #c7d2fe; }
+
+        .food-item.inactive {
+            opacity: 0.45;
+            background: #fafafa;
+        }
+
+        .food-item-info { flex: 1; min-width: 0; }
+
+        .food-item-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .food-item-desc {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .food-item-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            color: #999;
+        }
+
+        .toggle-btn.active-state {
+            border-color: #10b981;
+            color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .toggle-btn:hover { opacity: 0.75; }
+
+        /* ── FORM MODAL ── */
+
+        .modal { width: 560px; max-height: 88vh; overflow-y: auto; }
+
+        .lang-tabs {
+            display: flex; gap: 6px; flex-wrap: wrap;
+            margin-bottom: 14px; border-bottom: 1px solid #eee; padding-bottom: 12px;
+        }
+        .lang-tab {
+            padding: 5px 11px; border: 2px solid #e0e0e0; border-radius: 20px;
+            font-size: 12px; font-weight: 700; cursor: pointer; background: white;
+            font-family: inherit; transition: all 0.2s; color: #666;
+        }
+        .lang-tab.active { border-color: #667eea; background: #667eea; color: white; }
+
+        .lang-panel { display: none; }
+        .lang-panel.active { display: block; }
+
+        .lang-panel-header {
+            font-size: 11px; font-weight: 800; color: #a78bfa;
+            letter-spacing: 1px; text-transform: uppercase;
+            margin-bottom: 10px; padding: 6px 0 0;
+        }
+
+        /* KATEGORİ MODAL */
+        #catModal .modal { width: 520px; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 440px;
+            max-width: 95vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: popIn 0.2s ease;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.92); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
+        }
+
+        .modal h3 {
+            font-size: 17px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 11px 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e1b4b;
+            color: white;
+            padding: 13px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 999;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.green { background: #065f46; }
+        .toast.red   { background: #7f1d1d; }
+
+        /* ── BOŞ DURUM ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #bbb;
+        }
+        .empty-state div { font-size: 32px; margin-bottom: 10px; }
+        .empty-state p { font-size: 14px; }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        @media (max-width: 700px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- GİRİŞ EKRANI -->
+<div id="loginScreen">
+    <div class="login-box">
+        <h2>🔐 Yönetim Paneli</h2>
+        <p>Menü düzenlemek için şifreyi girin</p>
+        <input type="password" id="passwordInput" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter') checkPassword()">
+        <div class="login-error" id="loginError">❌ Hatalı şifre</div>
+        <button class="btn btn-primary" onclick="checkPassword()">Giriş Yap</button>
+    </div>
+</div>
+
+<!-- ANA PANEL -->
+<div id="adminPanel">
+    <div class="topbar">
+        <div>
+            <h1>🍽️ Menü Yönetim Paneli</h1>
+            <span>Firebase bağlı — değişiklikler anında yayınlanır</span>
+        </div>
+        <div class="topbar-right">
+            <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <!-- KATEGORİLER -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📂 Kategoriler</h2>
+            </div>
+            <div class="panel-body">
+                <div class="cat-list" id="catList">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+                <div class="add-cat-row">
+                    <button class="btn btn-success" style="width:100%" onclick="openCatModal()">+ Kategori Ekle</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- YEMEKLER -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="food-panel-header" style="width:100%">
+                    <h2>🥘 <span id="activeCatTitle">Kategori Seçin</span></h2>
+                    <button class="btn btn-primary btn-sm" onclick="openAddFood()" id="addFoodBtn"
+                            style="display:none;">+ Yemek Ekle</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div id="foodList">
+                    <div class="empty-state">
+                        <div>👈</div>
+                        <p>Sol taraftan bir kategori seçin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- YEMEK EKLE/DÜZENLE MODAL -->
+<div class="modal-overlay" id="foodModal">
+    <div class="modal">
+        <h3 id="modalTitle">Yemek Ekle</h3>
+        <input type="hidden" id="editFoodId">
+
+        <div class="lang-tabs" id="langTabs">
+            <button class="lang-tab active" onclick="switchLangTab('food','tr')">🇹🇷 Türkçe</button><button class="lang-tab " onclick="switchLangTab('food','en')">🇬🇧 İngilizce</button><button class="lang-tab " onclick="switchLangTab('food','ru')">🇷🇺 Rusça</button><button class="lang-tab " onclick="switchLangTab('food','de')">🇩🇪 Almanca</button><button class="lang-tab " onclick="switchLangTab('food','pl')">🇵🇱 Lehçe</button><button class="lang-tab " onclick="switchLangTab('food','fr')">🇫🇷 Fransızca</button><button class="lang-tab " onclick="switchLangTab('food','nl')">🇳🇱 Hollandaca</button><button class="lang-tab " onclick="switchLangTab('food','cs')">🇨🇿 Çekçe</button><button class="lang-tab " onclick="switchLangTab('food','ro')">🇷🇴 Romence</button>
+        </div>
+
+        
+                <div class="lang-panel active" id="panel_tr">
+                    <div class="lang-panel-header">🇹🇷 Türkçe</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_tr" placeholder="Izgara Köfte">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_tr" placeholder="Yanında pilav ve ızgara sebze">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_en">
+                    <div class="lang-panel-header">🇬🇧 İngilizce</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_en" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_en" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_ru">
+                    <div class="lang-panel-header">🇷🇺 Rusça</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_ru" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_ru" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_de">
+                    <div class="lang-panel-header">🇩🇪 Almanca</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_de" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_de" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_pl">
+                    <div class="lang-panel-header">🇵🇱 Lehçe</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_pl" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_pl" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_fr">
+                    <div class="lang-panel-header">🇫🇷 Fransızca</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_fr" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_fr" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_nl">
+                    <div class="lang-panel-header">🇳🇱 Hollandaca</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_nl" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_nl" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_cs">
+                    <div class="lang-panel-header">🇨🇿 Çekçe</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_cs" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_cs" placeholder="">
+                    </div>
+                </div>
+                <div class="lang-panel " id="panel_ro">
+                    <div class="lang-panel-header">🇷🇴 Romence</div>
+                    <div class="form-group">
+                        <label>Yemek Adı</label>
+                        <input type="text" id="foodName_ro" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="foodDesc_ro" placeholder="">
+                    </div>
+                </div>
+
+        <div class="form-group" style="margin-top:10px;">
+            <label>Kategori</label>
+            <select id="foodCat"></select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeModal()">İptal</button>
+            <button class="btn btn-primary" onclick="saveFood()">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- KATEGORİ EKLE/DÜZENLE MODAL -->
+<div class="modal-overlay" id="catModal">
+    <div class="modal">
+        <h3 id="catModalTitle">Kategori Ekle</h3>
+        <input type="hidden" id="editCatId">
+        <div class="lang-tabs">
+            <button class="lang-tab active" onclick="switchLangTab('cat','tr')">🇹🇷 Türkçe</button><button class="lang-tab " onclick="switchLangTab('cat','en')">🇬🇧 İngilizce</button><button class="lang-tab " onclick="switchLangTab('cat','ru')">🇷🇺 Rusça</button><button class="lang-tab " onclick="switchLangTab('cat','de')">🇩🇪 Almanca</button><button class="lang-tab " onclick="switchLangTab('cat','pl')">🇵🇱 Lehçe</button><button class="lang-tab " onclick="switchLangTab('cat','fr')">🇫🇷 Fransızca</button><button class="lang-tab " onclick="switchLangTab('cat','nl')">🇳🇱 Hollandaca</button><button class="lang-tab " onclick="switchLangTab('cat','cs')">🇨🇿 Çekçe</button><button class="lang-tab " onclick="switchLangTab('cat','ro')">🇷🇴 Romence</button>
+        </div>
+        
+            <div class="lang-panel active" id="catpanel_tr">
+                <div class="lang-panel-header">🇹🇷 Türkçe</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_tr" placeholder="Kategori adı...">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_en">
+                <div class="lang-panel-header">🇬🇧 İngilizce</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_en" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_ru">
+                <div class="lang-panel-header">🇷🇺 Rusça</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_ru" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_de">
+                <div class="lang-panel-header">🇩🇪 Almanca</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_de" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_pl">
+                <div class="lang-panel-header">🇵🇱 Lehçe</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_pl" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_fr">
+                <div class="lang-panel-header">🇫🇷 Fransızca</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_fr" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_nl">
+                <div class="lang-panel-header">🇳🇱 Hollandaca</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_nl" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_cs">
+                <div class="lang-panel-header">🇨🇿 Çekçe</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_cs" placeholder="">
+                </div>
+            </div>
+            <div class="lang-panel " id="catpanel_ro">
+                <div class="lang-panel-header">🇷🇴 Romence</div>
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="catName_ro" placeholder="">
+                </div>
+            </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeCatModal()">İptal</button>
+            <button class="btn btn-primary" onclick="saveCat()">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+    import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc,
+             addDoc, updateDoc, deleteDoc,
+             onSnapshot, query, orderBy,
+             serverTimestamp, setDoc }   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const PANEL_PASSWORD = "1234"; // ← Şifreyi buradan değiştirin
+
+    const firebaseConfig = {
+            apiKey: "AIzaSyBVzDFPsQslIIvghFXkaA2ynR-gnmFFwWo",
+            authDomain: "noxinn-havuz.firebaseapp.com",
+            projectId: "noxinn-havuz",
+            storageBucket: "noxinn-havuz.firebasestorage.app",
+            messagingSenderId: "507130057258",
+            appId: "1:507130057258:web:3e3c098be9d71c575e2953"
+        };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+
+    // Menü değişince versiyon numarasını artır → misafir sayfaları cache'i yeniler
+    async function bumpMenuVersion() {
+        try {
+            const v = Date.now();
+            await setDoc(doc(db, "menuMeta", "version"), { v });
+        } catch(e) {}
+    }
+
+    // ── Şifre ──────────────────────────────────────────────
+    window.checkPassword = function() {
+        const val = document.getElementById('passwordInput').value;
+        if (val === PANEL_PASSWORD) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display  = 'block';
+            startListeners();
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+            document.getElementById('passwordInput').value = '';
+        }
+    };
+
+    window.logout = function() {
+        document.getElementById('adminPanel').style.display  = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('passwordInput').value = '';
+    };
+
+    // ── State ───────────────────────────────────────────────
+    let categories = []; // [{id, name, order}]
+    let foods      = []; // [{id, name, desc, cat, active}]
+    let activeCat  = null;
+
+    // ── Realtime listeners ──────────────────────────────────
+    function startListeners() {
+        // Kategoriler
+        onSnapshot(query(collection(db, "menuCategories"), orderBy("order")), snap => {
+            categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderCategories();
+            renderFoods();
+        });
+
+        // Yemekler
+        onSnapshot(collection(db, "menuItems"), snap => {
+            foods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderCategories(); // item sayılarını güncelle
+            renderFoods();
+        });
+    }
+
+    // ── Kategoriler ─────────────────────────────────────────
+    function renderCategories() {
+        const list = document.getElementById('catList');
+        if (categories.length === 0) {
+            list.innerHTML = '<p style="color:#bbb;font-size:13px;text-align:center;padding:10px">Henüz kategori yok</p>';
+            return;
+        }
+        list.innerHTML = categories.map(cat => {
+            const count = foods.filter(f => f.cat === cat.id).length;
+            return `<div class="cat-item ${activeCat === cat.id ? 'active' : ''}"
+                         onclick="selectCat('${cat.id}')">
+                <span class="cat-item-name">${(cat.names && cat.names.tr) || cat.name}</span>
+                <span class="cat-item-count">${count}</span>
+                <button class="cat-delete-btn" title="Düzenle" onclick="event.stopPropagation();openCatModal('${cat.id}')">✏️</button>
+                <button class="cat-delete-btn" title="Sil" onclick="deleteCategory(event,'${cat.id}','${(cat.names&&cat.names.tr)||cat.name}')">×</button>
+            </div>`;
+        }).join('');
+    }
+
+    window.selectCat = function(id) {
+        activeCat = id;
+        renderCategories();
+        renderFoods();
+    };
+
+    window.openCatModal = function(id) {
+        if (id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+            document.getElementById('catModalTitle').textContent = 'Kategoriyi Düzenle';
+            document.getElementById('editCatId').value = id;
+                    document.getElementById('catName_tr').value = (cat.names && cat.names.tr) || ('tr' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_en').value = (cat.names && cat.names.en) || ('en' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_ru').value = (cat.names && cat.names.ru) || ('ru' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_de').value = (cat.names && cat.names.de) || ('de' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_pl').value = (cat.names && cat.names.pl) || ('pl' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_fr').value = (cat.names && cat.names.fr) || ('fr' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_nl').value = (cat.names && cat.names.nl) || ('nl' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_cs').value = (cat.names && cat.names.cs) || ('cs' === 'tr' ? cat.name || '' : '');
+        document.getElementById('catName_ro').value = (cat.names && cat.names.ro) || ('ro' === 'tr' ? cat.name || '' : '');
+        } else {
+            document.getElementById('catModalTitle').textContent = 'Kategori Ekle';
+            document.getElementById('editCatId').value = '';
+                    document.getElementById('catName_tr').value = '';
+        document.getElementById('catName_en').value = '';
+        document.getElementById('catName_ru').value = '';
+        document.getElementById('catName_de').value = '';
+        document.getElementById('catName_pl').value = '';
+        document.getElementById('catName_fr').value = '';
+        document.getElementById('catName_nl').value = '';
+        document.getElementById('catName_cs').value = '';
+        document.getElementById('catName_ro').value = '';
+        }
+        switchLangTab('cat', 'tr');
+        document.getElementById('catModal').classList.add('show');
+    };
+
+    window.closeCatModal = function() {
+        document.getElementById('catModal').classList.remove('show');
+    };
+
+    window.saveCat = async function() {
+                const cn_tr = document.getElementById('catName_tr').value.trim();
+        const cn_en = document.getElementById('catName_en').value.trim();
+        const cn_ru = document.getElementById('catName_ru').value.trim();
+        const cn_de = document.getElementById('catName_de').value.trim();
+        const cn_pl = document.getElementById('catName_pl').value.trim();
+        const cn_fr = document.getElementById('catName_fr').value.trim();
+        const cn_nl = document.getElementById('catName_nl').value.trim();
+        const cn_cs = document.getElementById('catName_cs').value.trim();
+        const cn_ro = document.getElementById('catName_ro').value.trim();
+        if (!cn_tr) { showToast('Türkçe kategori adı boş olamaz ⚠️'); return; }
+        const names = {tr: cn_tr, en: cn_en, ru: cn_ru, de: cn_de, pl: cn_pl, fr: cn_fr, nl: cn_nl, cs: cn_cs, ro: cn_ro};
+        const id = document.getElementById('editCatId').value;
+        if (id) {
+            await updateDoc(doc(db, "menuCategories", id), { names, name: cn_tr });
+            showToast('Kategori güncellendi ✅', 'green');
+            await bumpMenuVersion();
+        } else {
+            await addDoc(collection(db, "menuCategories"), {
+                names, name: cn_tr,
+                order: categories.length,
+                createdAt: serverTimestamp()
+            });
+            showToast('Kategori eklendi ✅', 'green');
+            await bumpMenuVersion();
+        }
+        closeCatModal();
+    };
+
+    window.deleteCategory = async function(e, id, name) {
+        e.stopPropagation();
+        const itemCount = foods.filter(f => f.cat === id).length;
+        const msg = itemCount > 0
+            ? `"${name}" kategorisini ve içindeki ${itemCount} yemeği silmek istediğinize emin misiniz?`
+            : `"${name}" kategorisini silmek istediğinize emin misiniz?`;
+        if (!confirm(msg)) return;
+
+        // Kategorideki yemekleri de sil
+        for (const food of foods.filter(f => f.cat === id)) {
+            await deleteDoc(doc(db, "menuItems", food.id));
+        }
+        await deleteDoc(doc(db, "menuCategories", id));
+        if (activeCat === id) activeCat = null;
+        showToast('Kategori silindi', 'red');
+        await bumpMenuVersion();
+    };
+
+    // ── Yemekler ────────────────────────────────────────────
+    function renderFoods() {
+        const container = document.getElementById('foodList');
+        const btn       = document.getElementById('addFoodBtn');
+        const title     = document.getElementById('activeCatTitle');
+
+        if (!activeCat) {
+            btn.style.display = 'none';
+            title.textContent = 'Kategori Seçin';
+            container.innerHTML = `<div class="empty-state"><div>👈</div><p>Sol taraftan bir kategori seçin</p></div>`;
+            return;
+        }
+
+        const cat = categories.find(c => c.id === activeCat);
+        title.textContent = cat ? ((cat.names && cat.names.tr) || cat.name) : '';
+        btn.style.display = 'inline-block';
+
+        const items = foods.filter(f => f.cat === activeCat);
+        if (items.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div>🍽️</div><p>Bu kategoride henüz yemek yok</p></div>`;
+            return;
+        }
+
+        items.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+        container.innerHTML = `<div class="food-list" id="sortableList">` + items.map(item => `
+            <div class="food-item ${item.active === false ? 'inactive' : ''}" data-id="${item.id}" draggable="true">
+                <div class="drag-handle" title="Sürükleyerek sırala">⠿</div>
+                <div class="food-item-info">
+                    <div class="food-item-name">${item.name}</div>
+                    <div class="food-item-desc">${item.desc || '—'}</div>
+                </div>
+                <div class="food-item-actions">
+                    <button class="toggle-btn ${item.active !== false ? 'active-state' : ''}"
+                            onclick="toggleFood('${item.id}', ${item.active !== false})">
+                        ${item.active !== false ? '✓ Aktif' : '✗ Gizli'}
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="openEditFood('${item.id}')">Düzenle</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteFoodItem('${item.id}', '${item.name.replace(/'/g,"\'")}')">Sil</button>
+                </div>
+            </div>`).join('') + `</div>`;
+
+        initDragSort();
+    }
+
+    function initDragSort() {
+        const list = document.getElementById('sortableList');
+        if (!list) return;
+        let dragSrc = null;
+
+        list.querySelectorAll('.food-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                dragSrc = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                list.querySelectorAll('.food-item').forEach(i => i.classList.remove('drag-over'));
+            });
+            item.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (this !== dragSrc) {
+                    list.querySelectorAll('.food-item').forEach(i => i.classList.remove('drag-over'));
+                    this.classList.add('drag-over');
+                }
+            });
+            item.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                if (this === dragSrc) return;
+                this.classList.remove('drag-over');
+
+                // DOM sırasını güncelle
+                const items = [...list.querySelectorAll('.food-item')];
+                const srcIdx  = items.indexOf(dragSrc);
+                const destIdx = items.indexOf(this);
+                if (srcIdx < destIdx) {
+                    list.insertBefore(dragSrc, this.nextSibling);
+                } else {
+                    list.insertBefore(dragSrc, this);
+                }
+
+                // Firebase'e yeni order'ları yaz
+                const newOrder = [...list.querySelectorAll('.food-item')].map(el => el.dataset.id);
+                await Promise.all(newOrder.map((id, idx) =>
+                    updateDoc(doc(db, "menuItems", id), { order: idx })
+                ));
+                showToast('Sıralama kaydedildi ✅', 'green');
+            });
+        });
+    }
+
+    window.toggleFood = async function(id, currentlyActive) {
+        await updateDoc(doc(db, "menuItems", id), { active: !currentlyActive });
+        showToast(currentlyActive ? 'Yemek gizlendi' : 'Yemek aktif edildi ✅', currentlyActive ? '' : 'green');
+        await bumpMenuVersion();
+    };
+
+    window.deleteFoodItem = async function(id, name) {
+        if (!confirm(`"${name}" yemeğini silmek istediğinize emin misiniz?`)) return;
+        await deleteDoc(doc(db, "menuItems", id));
+        showToast('Yemek silindi', 'red');
+        await bumpMenuVersion();
+    };
+
+    // ── Modal ────────────────────────────────────────────────
+    function populateCatSelect() {
+        const sel = document.getElementById('foodCat');
+        sel.innerHTML = categories.map(c =>
+            `<option value="${c.id}" ${c.id === activeCat ? 'selected' : ''}>${c.name}</option>`
+        ).join('');
+    }
+
+    window.openAddFood = function() {
+        document.getElementById('modalTitle').textContent = 'Yemek Ekle';
+        document.getElementById('editFoodId').value = '';
+                document.getElementById('foodName_tr').value = '';
+        document.getElementById('foodDesc_tr').value = '';
+        document.getElementById('foodName_en').value = '';
+        document.getElementById('foodDesc_en').value = '';
+        document.getElementById('foodName_ru').value = '';
+        document.getElementById('foodDesc_ru').value = '';
+        document.getElementById('foodName_de').value = '';
+        document.getElementById('foodDesc_de').value = '';
+        document.getElementById('foodName_pl').value = '';
+        document.getElementById('foodDesc_pl').value = '';
+        document.getElementById('foodName_fr').value = '';
+        document.getElementById('foodDesc_fr').value = '';
+        document.getElementById('foodName_nl').value = '';
+        document.getElementById('foodDesc_nl').value = '';
+        document.getElementById('foodName_cs').value = '';
+        document.getElementById('foodDesc_cs').value = '';
+        document.getElementById('foodName_ro').value = '';
+        document.getElementById('foodDesc_ro').value = '';
+        switchLangTab('food', 'tr');
+        populateCatSelect();
+        document.getElementById('foodModal').classList.add('show');
+    };
+
+    window.openEditFood = function(id) {
+        const food = foods.find(f => f.id === id);
+        if (!food) return;
+        document.getElementById('modalTitle').textContent  = 'Yemeği Düzenle';
+        document.getElementById('editFoodId').value        = id;
+                document.getElementById('foodName_tr').value = food.names?.tr || ('tr' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_tr').value = food.descs?.tr || ('tr' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_en').value = food.names?.en || ('en' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_en').value = food.descs?.en || ('en' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_ru').value = food.names?.ru || ('ru' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_ru').value = food.descs?.ru || ('ru' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_de').value = food.names?.de || ('de' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_de').value = food.descs?.de || ('de' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_pl').value = food.names?.pl || ('pl' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_pl').value = food.descs?.pl || ('pl' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_fr').value = food.names?.fr || ('fr' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_fr').value = food.descs?.fr || ('fr' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_nl').value = food.names?.nl || ('nl' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_nl').value = food.descs?.nl || ('nl' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_cs').value = food.names?.cs || ('cs' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_cs').value = food.descs?.cs || ('cs' === 'tr' ? food.desc || '' : '');
+        document.getElementById('foodName_ro').value = food.names?.ro || ('ro' === 'tr' ? food.name || '' : '');
+        document.getElementById('foodDesc_ro').value = food.descs?.ro || ('ro' === 'tr' ? food.desc || '' : '');
+        switchLangTab('food', 'tr');
+        populateCatSelect();
+        document.getElementById('foodCat').value = food.cat;
+        document.getElementById('foodModal').classList.add('show');
+    };
+
+
+    window.switchLangTab = function(context, code) {
+        const prefix   = context === 'cat' ? 'catpanel_' : 'panel_';
+        const modalId  = context === 'cat' ? 'catModal'  : 'foodModal';
+        const modal    = document.getElementById(modalId);
+
+        // Tüm tab ve panelleri kapat
+        modal.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+        modal.querySelectorAll('.lang-panel').forEach(p => p.classList.remove('active'));
+
+        // Doğru tab ve paneli aç
+        modal.querySelectorAll('.lang-tab').forEach(t => {
+            if (t.getAttribute('onclick') === "switchLangTab('" + context + "','" + code + "')") {
+                t.classList.add('active');
+            }
+        });
+        const panel = document.getElementById(prefix + code);
+        if (panel) panel.classList.add('active');
+    };
+
+    window.closeModal = function() {
+        document.getElementById('foodModal').classList.remove('show');
+    };
+
+    window.saveFood = async function() {
+        const id  = document.getElementById('editFoodId').value;
+        const cat = document.getElementById('foodCat').value;
+                const name_tr = document.getElementById('foodName_tr').value.trim();
+        const name_en = document.getElementById('foodName_en').value.trim();
+        const name_ru = document.getElementById('foodName_ru').value.trim();
+        const name_de = document.getElementById('foodName_de').value.trim();
+        const name_pl = document.getElementById('foodName_pl').value.trim();
+        const name_fr = document.getElementById('foodName_fr').value.trim();
+        const name_nl = document.getElementById('foodName_nl').value.trim();
+        const name_cs = document.getElementById('foodName_cs').value.trim();
+        const name_ro = document.getElementById('foodName_ro').value.trim();
+                const desc_tr = document.getElementById('foodDesc_tr').value.trim();
+        const desc_en = document.getElementById('foodDesc_en').value.trim();
+        const desc_ru = document.getElementById('foodDesc_ru').value.trim();
+        const desc_de = document.getElementById('foodDesc_de').value.trim();
+        const desc_pl = document.getElementById('foodDesc_pl').value.trim();
+        const desc_fr = document.getElementById('foodDesc_fr').value.trim();
+        const desc_nl = document.getElementById('foodDesc_nl').value.trim();
+        const desc_cs = document.getElementById('foodDesc_cs').value.trim();
+        const desc_ro = document.getElementById('foodDesc_ro').value.trim();
+        if (!name_tr) { showToast('Türkçe yemek adı boş olamaz ⚠️'); return; }
+
+        const names = {tr: name_tr, en: name_en, ru: name_ru, de: name_de, pl: name_pl, fr: name_fr, nl: name_nl, cs: name_cs, ro: name_ro};
+        const descs = {tr: desc_tr, en: desc_en, ru: desc_ru, de: desc_de, pl: desc_pl, fr: desc_fr, nl: desc_nl, cs: desc_cs, ro: desc_ro};
+
+        if (id) {
+            await updateDoc(doc(db, "menuItems", id), { names, descs, cat,
+                name: name_tr, desc: desc_tr });
+            showToast('Yemek güncellendi ✅', 'green');
+            await bumpMenuVersion();
+        } else {
+            await addDoc(collection(db, "menuItems"), {
+                names, descs, cat,
+                name: name_tr, desc: desc_tr,
+                active: true,
+                order: foods.filter(f => f.cat === cat).length,
+                createdAt: serverTimestamp()
+            });
+            showToast('Yemek eklendi ✅', 'green');
+            await bumpMenuVersion();
+        }
+        closeModal();
+    };
+
+    // ── Toast ────────────────────────────────────────────────
+    function showToast(msg, type = '') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast show ' + type;
+        setTimeout(() => t.className = 'toast', 3000);
+    }
+    window.showToast = showToast;
+
+    // Modal dışına tıklayınca kapat
+    document.getElementById('foodModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    document.getElementById('catModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCatModal();
+    });
+</script>
+</body>
+</html>

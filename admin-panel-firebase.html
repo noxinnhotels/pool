@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şef Garson - Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 { color: #1e3c72; font-size: 26px; display: flex; align-items: center; gap: 10px; }
+
+        .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+
+        .stat-box {
+            background: #f8f9ff;
+            padding: 10px 18px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            min-width: 80px;
+        }
+        .stat-box .label { font-size: 11px; color: #666; margin-bottom: 4px; }
+        .stat-box .value { font-size: 22px; font-weight: bold; color: #1e3c72; }
+        .stat-box.pending .value  { color: #f59e0b; }
+        .stat-box.completed .value { color: #10b981; }
+
+        /* CONTROLS */
+        .controls {
+            background: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-secondary { background: #f59e0b; color: white; }
+        .btn-secondary:hover { background: #d97706; }
+
+        .filter-buttons { display: flex; gap: 8px; }
+        .filter-btn {
+            padding: 7px 14px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .filter-btn.active { background: #1e3c72; color: white; border-color: #1e3c72; }
+
+        .view-toggle {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .view-btn {
+            padding: 7px 13px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #666;
+            font-family: inherit;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .view-btn.active { background: white; color: #1e3c72; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+        .sound-toggle input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .sound-toggle label { cursor: pointer; font-size: 13px; font-weight: 600; color: #333; }
+
+        /* KART GÖRÜNÜMÜ */
+        .requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .request-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .request-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 6px;
+        }
+        .request-card.pending::before { background: #f59e0b; }
+        .request-card.completed::before { background: #10b981; opacity: 0.3; }
+        .request-card.completed { opacity: 0.6; }
+        .request-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .masa-info { display: flex; align-items: center; gap: 12px; }
+        .masa-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 58px; height: 58px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: bold;
+        }
+        .request-type .emoji { font-size: 30px; }
+        .request-type .type-label { font-size: 17px; font-weight: bold; color: #333; margin-top: 4px; }
+
+        .timer-badge {
+            background: #fef3c7; color: #d97706;
+            padding: 5px 11px; border-radius: 8px;
+            font-size: 13px; font-weight: bold;
+        }
+        .timer-badge.danger {
+            background: #fee2e2; color: #dc2626;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        .card-body { margin-bottom: 15px; }
+        .info-row {
+            display: flex; justify-content: space-between;
+            padding: 7px 0; border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #666; }
+        .info-value { font-weight: 600; color: #333; }
+
+        .card-actions { display: flex; gap: 8px; }
+        .action-btn {
+            flex: 1; padding: 11px;
+            border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .action-btn.complete { background: #10b981; color: white; }
+        .action-btn.complete:hover { background: #059669; }
+        .action-btn.delete { background: #ef4444; color: white; flex: 0.45; }
+        .action-btn.delete:hover { background: #dc2626; }
+
+        .new-badge {
+            background: #ef4444; color: white;
+            padding: 4px 8px; border-radius: 6px;
+            font-size: 11px; font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        /* MASA GRUBU GÖRÜNÜMÜ */
+        .masa-group {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .masa-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            cursor: pointer;
+            user-select: none;
+        }
+        .masa-group-header:hover { opacity: 0.93; }
+        .masa-group-title {
+            display: flex; align-items: center;
+            gap: 12px; font-size: 17px; font-weight: 700;
+        }
+        .masa-badge {
+            background: rgba(255,255,255,0.22);
+            border-radius: 7px; padding: 3px 10px;
+            font-size: 12px; font-weight: 700;
+        }
+        .masa-group-actions { display: flex; align-items: center; gap: 10px; }
+        .group-complete-btn {
+            background: #10b981; color: white;
+            border: none; border-radius: 8px;
+            padding: 6px 13px; font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: background 0.2s;
+        }
+        .group-complete-btn:hover { background: #059669; }
+        .group-arrow { font-size: 16px; transition: transform 0.25s; }
+        .masa-group.collapsed .group-arrow { transform: rotate(-90deg); }
+        .masa-group-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+        .masa-group.collapsed .masa-group-body { display: none; }
+
+        .group-request-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px;
+            background: #f8f9ff; border-radius: 10px;
+            border-left: 4px solid #f59e0b;
+        }
+        .group-request-row.completed-row { border-left-color: #10b981; opacity: 0.5; }
+        .group-req-emoji { font-size: 22px; flex-shrink: 0; }
+        .group-req-info { flex: 1; min-width: 0; }
+        .group-req-type { font-size: 14px; font-weight: 700; color: #222; }
+        .group-req-time { font-size: 12px; color: #999; margin-top: 1px; }
+        .group-req-timer {
+            font-size: 12px; font-weight: 700;
+            background: #fef3c7; color: #d97706;
+            border-radius: 6px; padding: 3px 8px; flex-shrink: 0;
+        }
+        .group-req-timer.danger { background: #fee2e2; color: #dc2626; animation: pulse 2s infinite; }
+        .group-req-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .mini-btn {
+            border: none; border-radius: 7px; padding: 6px 10px;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .mini-btn.done  { background: #10b981; color: white; }
+        .mini-btn.done:hover  { background: #059669; }
+        .mini-btn.del   { background: #fee2e2; color: #dc2626; }
+        .mini-btn.del:hover   { background: #fecaca; }
+
+        /* GEÇMİŞ GÖRÜNÜMÜ */
+        .history-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 26px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .history-panel h2 { color: #1e3c72; font-size: 18px; margin-bottom: 20px; }
+        .history-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .history-stat {
+            background: #f8f9ff; border-radius: 12px;
+            padding: 16px; text-align: center; border: 2px solid #e8eaff;
+        }
+        .history-stat .h-value {
+            font-size: 30px; font-weight: 800;
+            color: #1e3c72; line-height: 1; margin-bottom: 5px;
+        }
+        .history-stat .h-label { font-size: 12px; color: #888; font-weight: 600; }
+
+        .hour-bar-wrap { margin-top: 6px; margin-bottom: 24px; }
+        .hour-bar-wrap h3 {
+            font-size: 13px; color: #888; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+        }
+        .hour-bars { display: flex; align-items: flex-end; gap: 4px; height: 64px; }
+        .hour-col  { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .hour-bar  {
+            width: 100%; background: linear-gradient(180deg, #667eea, #764ba2);
+            border-radius: 4px 4px 0 0; min-height: 0;
+        }
+        .hour-label { font-size: 9px; color: #aaa; margin-top: 3px; }
+
+        .section-title {
+            font-size: 12px; color: #888; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+        }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .history-table th {
+            text-align: left; padding: 10px 14px;
+            background: #f1f5f9; color: #555;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .history-table th:first-child { border-radius: 8px 0 0 8px; }
+        .history-table th:last-child  { border-radius: 0 8px 8px 0; }
+        .history-table td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333; font-weight: 500; vertical-align: top;
+        }
+        .history-table tr:last-child td { border-bottom: none; }
+        .history-table tr:hover td { background: #fafbff; }
+        .masa-pill {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border-radius: 6px;
+            padding: 3px 10px; font-size: 13px; font-weight: 700;
+        }
+
+        /* TOAST & EMPTY */
+        .empty-state {
+            background: white; border-radius: 16px;
+            padding: 60px 20px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .empty-state .emoji { font-size: 60px; margin-bottom: 16px; }
+        .empty-state h2 { color: #333; margin-bottom: 8px; }
+        .empty-state p  { color: #666; font-size: 15px; }
+
+        .notification-toast {
+            position: fixed; top: 20px; right: 20px;
+            background: white; padding: 18px 22px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none; z-index: 1000;
+            border-left: 6px solid #f59e0b;
+            max-width: 320px;
+            animation: slideIn 0.3s ease;
+        }
+        .notification-toast.show { display: block; }
+        @keyframes slideIn { from { transform: translateX(360px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-title   { font-weight: bold; margin-bottom: 4px; font-size: 15px; color: #333; }
+        .toast-message { color: #666; font-size: 13px; }
+
+        .loading { text-align: center; padding: 40px; color: white; font-size: 18px; }
+
+        @media (max-width: 768px) {
+            .header { padding: 15px 20px; }
+            .header h1 { font-size: 20px; }
+            .requests-grid { grid-template-columns: 1fr; }
+            .stats { width: 100%; }
+            .stat-box { flex: 1; }
+            .controls { gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">🔄 Bağlanıyor...</div>
+
+    <div id="mainContent" style="display:none;">
+        <div class="header">
+            <h1>👨‍🍳 Şef Garson Paneli</h1>
+            <div class="stats">
+                <div class="stat-box pending">
+                    <div class="label">Bekleyen</div>
+                    <div class="value" id="pendingCount">0</div>
+                </div>
+                <div class="stat-box completed">
+                    <div class="label">Tamamlanan</div>
+                    <div class="value" id="completedCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Toplam</div>
+                    <div class="value" id="totalCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">Tümü</button>
+                <button class="filter-btn" data-filter="pending">Bekleyen</button>
+                <button class="filter-btn" data-filter="completed">Tamamlanan</button>
+            </div>
+
+            <div class="view-toggle">
+                <button class="view-btn active" id="viewCards"   onclick="setView('cards')">🃏 Kartlar</button>
+                <button class="view-btn"         id="viewMasa"    onclick="setView('masa')">🪑 Masa Grubu</button>
+            </div>
+
+            <div class="sound-toggle">
+                <input type="checkbox" id="soundToggle" checked>
+                <label for="soundToggle">🔊 Ses</label>
+            </div>
+
+            <button class="btn btn-secondary" onclick="clearCompleted()">🗑️ Tamamlananları Temizle</button>
+        </div>
+
+        <div class="requests-grid" id="requestsGrid"></div>
+    </div>
+
+    <div class="notification-toast" id="notificationToast">
+        <div class="toast-title"   id="toastTitle"></div>
+        <div class="toast-message" id="toastMessage"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy,
+                 onSnapshot, doc, updateDoc, deleteDoc }
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBVzDFPsQslIIvghFXkaA2ynR-gnmFFwWo",
+            authDomain: "noxinn-havuz.firebaseapp.com",
+            projectId: "noxinn-havuz",
+            storageBucket: "noxinn-havuz.firebasestorage.app",
+            messagingSenderId: "507130057258",
+            appId: "1:507130057258:web:3e3c098be9d71c575e2953"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db  = getFirestore(app);
+
+        let currentFilter   = 'all';
+        let viewMode        = 'cards';
+        let soundEnabled    = true;
+        let lastPendingCount = 0;
+        let allRequests     = [];
+
+        // ── SES ──────────────────────────────────────────────────
+        function playNotificationSound() {
+            if (!soundEnabled) return;
+            try {
+                const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 800;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.5);
+            } catch(e) {}
+        }
+
+        // ── TOAST ─────────────────────────────────────────────────
+        function showToast(title, message) {
+            const t = document.getElementById('notificationToast');
+            document.getElementById('toastTitle').textContent   = title;
+            document.getElementById('toastMessage').textContent = message;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 5000);
+        }
+
+        // ── YARDIMCILAR ──────────────────────────────────────────
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${h}s ${m}d`;
+            if (m > 0) return `${m}d ${s}sn`;
+            return `${s}sn`;
+        }
+
+        function timeStr(req) {
+            const d = req.createdAt ? new Date(req.createdAt) : new Date();
+            return d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function elapsed(req) {
+            const d = req.createdAt ? new Date(req.createdAt) : new Date();
+            return Math.floor((new Date() - d) / 1000);
+        }
+
+        // ── STATS ─────────────────────────────────────────────────
+        function updateStats() {
+            const pending   = allRequests.filter(r => r.status === 'pending').length;
+            const completed = allRequests.filter(r => r.status === 'completed').length;
+            document.getElementById('pendingCount').textContent   = pending;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('totalCount').textContent     = allRequests.length;
+
+            if (pending > lastPendingCount) {
+                playNotificationSound();
+                const newest = allRequests.filter(r => r.status === 'pending')[0];
+                if (newest) showToast('🔔 Yeni Çağrı!', `Masa ${newest.masa} — ${newest.type}`);
+            }
+            lastPendingCount = pending;
+        }
+
+        // ── GÖRÜNÜM TOGGLE ────────────────────────────────────────
+        window.setView = function(mode) {
+            viewMode = mode;
+            ['cards','masa','history'].forEach(v => {
+                document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1))
+                    .classList.toggle('active', v === mode);
+            });
+            renderRequests();
+        };
+
+        // ── ANA RENDER ────────────────────────────────────────────
+        function renderRequests() {
+            const grid = document.getElementById('requestsGrid');
+            updateStats();
+
+            let filtered = allRequests;
+            if (currentFilter === 'pending')   filtered = allRequests.filter(r => r.status === 'pending');
+            if (currentFilter === 'completed') filtered = allRequests.filter(r => r.status === 'completed');
+
+            if (viewMode === 'masa') {
+                grid.style.gridTemplateColumns = '1fr';
+                renderMasaView(grid, filtered);
+                return;
+            }
+
+            // Kart görünümü
+            grid.style.gridTemplateColumns = '';
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                    <div class="emoji">😴</div><h2>Henüz talep yok</h2>
+                    <p>Yeni çağrılar burada görünecek</p></div>`;
+                return;
+            }
+
+            const now = new Date();
+            grid.innerHTML = filtered.map(req => {
+                const sec     = elapsed(req);
+                const tClass  = sec >= 120 ? 'danger' : '';
+                const isNew   = sec < 10 && req.status === 'pending';
+                return `<div class="request-card ${req.status}">
+                    <div class="card-header">
+                        <div class="masa-info">
+                            <div class="masa-number">${req.masa}</div>
+                            <div class="request-type">
+                                <div class="emoji">${req.emoji || '🔔'}</div>
+                                <div class="type-label">${req.type}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                            ${isNew ? '<span class="new-badge">YENİ</span>' : ''}
+                            <div class="timer-badge ${tClass}">⏱️ ${formatTime(sec)}</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Saat:</span>
+                            <span class="info-value">${timeStr(req)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Durum:</span>
+                            <span class="info-value">${req.status === 'pending' ? '⏳ Bekliyor' : '✅ Tamamlandı'}</span>
+                        </div>
+                    </div>
+                    ${req.status === 'pending' ? `
+                    <div class="card-actions">
+                        <button class="action-btn complete" onclick="completeRequest('${req.id}')">✓ Tamamla</button>
+                        <button class="action-btn delete"  onclick="deleteRequest('${req.id}')">🗑️</button>
+                    </div>` : `
+                    <div class="card-actions">
+                        <button class="action-btn delete" style="flex:1" onclick="deleteRequest('${req.id}')">🗑️ Sil</button>
+                    </div>`}
+                </div>`;
+            }).join('');
+        }
+
+        // ── MASA GRUBU GÖRÜNÜMÜ ───────────────────────────────────
+        function renderMasaView(grid, filtered) {
+            const masaMap = {};
+            filtered.forEach(r => { (masaMap[r.masa] = masaMap[r.masa] || []).push(r); });
+
+            const masalar = Object.keys(masaMap).sort((a, b) => {
+                const ap = masaMap[a].some(r => r.status === 'pending');
+                const bp = masaMap[b].some(r => r.status === 'pending');
+                if (ap && !bp) return -1;
+                if (!ap && bp) return 1;
+                return String(a).localeCompare(String(b), undefined, {numeric: true});
+            });
+
+            if (masalar.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><div class="emoji">😴</div>
+                    <h2>Henüz talep yok</h2><p>Yeni çağrılar burada görünecek</p></div>`;
+                return;
+            }
+
+            grid.innerHTML = masalar.map(masa => {
+                const reqs       = masaMap[masa];
+                const pendingR   = reqs.filter(r => r.status === 'pending');
+                const hasPending = pendingR.length > 0;
+                const pendingIds = pendingR.map(r => `'${r.id}'`).join(',');
+
+                const rows = reqs.map(req => {
+                    const sec    = elapsed(req);
+                    const isDone = req.status === 'completed';
+                    const tClass = sec >= 120 ? 'danger' : '';
+                    return `<div class="group-request-row ${isDone ? 'completed-row' : ''}">
+                        <div class="group-req-emoji">${req.emoji || '🔔'}</div>
+                        <div class="group-req-info">
+                            <div class="group-req-type">${req.type}</div>
+                            <div class="group-req-time">${timeStr(req)}</div>
+                        </div>
+                        ${isDone
+                            ? '<div class="group-req-timer" style="background:#d1fae5;color:#059669">✓ Tamam</div>'
+                            : `<div class="group-req-timer ${tClass}">⏱ ${formatTime(sec)}</div>`}
+                        <div class="group-req-actions">
+                            ${!isDone ? `<button class="mini-btn done" onclick="completeRequest('${req.id}')">✓</button>` : ''}
+                            <button class="mini-btn del" onclick="deleteRequest('${req.id}')">🗑</button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `<div class="masa-group ${hasPending ? '' : 'collapsed'}" id="masagrp_${masa}">
+                    <div class="masa-group-header" onclick="toggleMasaGroup('${masa}')">
+                        <div class="masa-group-title">
+                            🪑 Masa ${masa}
+                            ${hasPending
+                                ? `<span class="masa-badge">🔔 ${pendingR.length} bekliyor</span>`
+                                : `<span class="masa-badge" style="background:rgba(255,255,255,0.15)">✓ Tamam</span>`}
+                        </div>
+                        <div class="masa-group-actions">
+                            ${hasPending ? `<button class="group-complete-btn"
+                                onclick="event.stopPropagation();completeAll([${pendingIds}])">
+                                Tümünü Tamamla</button>` : ''}
+                            <span class="group-arrow">▾</span>
+                        </div>
+                    </div>
+                    <div class="masa-group-body">${rows}</div>
+                </div>`;
+            }).join('');
+        }
+
+        window.toggleMasaGroup = function(masa) {
+            document.getElementById('masagrp_' + masa)?.classList.toggle('collapsed');
+        };
+
+        window.completeAll = async function(ids) {
+            const now = new Date().toISOString();
+            for (const id of ids) {
+                const req = allRequests.find(r => r.id === id);
+                await updateDoc(doc(db, 'requests', id), {
+                    status: 'completed', completedAt: now
+                });
+            }
+            showToast('✅ Tamamlandı', 'Masanın tüm talepleri tamamlandı.');
+        };
+
+
+        // ── FİREBASE İŞLEMLERİ ───────────────────────────────────
+        window.completeRequest = async function(id) {
+            try {
+                const req = allRequests.find(r => r.id === id);
+                const now = new Date().toISOString();
+                await updateDoc(doc(db, 'requests', id), {
+                    status: 'completed', completedAt: now
+                });
+                showToast('✅ Tamamlandı', 'Talep başarıyla tamamlandı.');
+            } catch(e) { showToast('⚠️ Hata', 'İşlem başarısız.'); }
+        };
+
+        window.deleteRequest = async function(id) {
+            if (!confirm('Bu talebi silmek istediğinizden emin misiniz?')) return;
+            try {
+                await deleteDoc(doc(db, 'requests', id));
+                showToast('🗑️ Silindi', 'Talep silindi.');
+            } catch(e) { showToast('⚠️ Hata', 'Silme başarısız.'); }
+        };
+
+        window.clearCompleted = async function() {
+            if (!confirm('Tamamlanan tüm talepleri silmek istediğinizden emin misiniz?')) return;
+            for (const req of allRequests.filter(r => r.status === 'completed')) {
+                try { await deleteDoc(doc(db, 'requests', req.id)); } catch(e) {}
+            }
+            showToast('🗑️ Temizlendi', 'Tamamlanan talepler silindi.');
+        };
+
+        // ── REALTİME DİNLEYİCİ ───────────────────────────────────
+        const q = query(collection(db, 'requests'), orderBy('timestamp', 'desc'));
+        onSnapshot(q, snap => {
+            allRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            document.getElementById('loading').style.display      = 'none';
+            document.getElementById('mainContent').style.display  = 'block';
+            renderRequests();
+            cleanupCompleted();
+        }, err => {
+            document.getElementById('loading').textContent = '⚠️ Bağlantı hatası. Sayfayı yenileyin.';
+        });
+
+        // Filtre butonları
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderRequests();
+            });
+        });
+
+        // Ses toggle
+        document.getElementById('soundToggle').addEventListener('change', e => {
+            soundEnabled = e.target.checked;
+        });
+
+        // Otomatik yenileme (kronometreler için)
+        setInterval(() => { if (allRequests.length > 0) renderRequests(); }, 1000);
+
+        // Tamamlanan talepleri 10 dakika sonra otomatik sil
+        // allRequests üzerinden çalışır — Firebase'e ekstra sorgu atmaz
+        async function cleanupCompleted() {
+            const TEN_MIN = 10 * 60 * 1000;
+            const now = Date.now();
+            const expired = allRequests.filter(r => {
+                if (r.status !== 'completed') return false;
+                if (!r.completedAt) return true;
+                const t = new Date(r.completedAt).getTime();
+                if (isNaN(t)) return true;
+                return (now - t) >= TEN_MIN;
+            });
+            for (const req of expired) {
+                try { await deleteDoc(doc(db, 'requests', req.id)); } catch(e) {}
+            }
+            if (expired.length > 0) console.log(`🗑️ ${expired.length} eski talep silindi`);
+        }
+
+        setInterval(cleanupCompleted, 30 * 1000); // her 30 saniyede kontrol et
+    </script>
+</body>
+</html>

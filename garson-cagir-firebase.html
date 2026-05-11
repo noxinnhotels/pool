@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garson Çağır - Restoran Sistemi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .lang-switcher {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lang-switcher:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .masa-info {
+            background: #f8f9ff;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            border: 2px solid #667eea;
+        }
+
+        .masa-info .label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .masa-info .masa-no {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .button-group {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 18px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .emoji {
+            font-size: 24px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3b82f6;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .notification-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-panel {
+            background: #fff9e6;
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-panel.active {
+            display: block;
+        }
+
+        .status-panel h3 {
+            color: #d97706;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .status-panel p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .lang-menu {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 10px;
+            z-index: 100;
+            min-width: 150px;
+        }
+
+        .lang-menu.show {
+            display: block;
+            animation: slideIn 0.2s ease;
+        }
+
+        .lang-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .lang-option:hover {
+            background: #f0f0f0;
+        }
+
+        .lang-option.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* MENÜ */
+        .menu-section { margin-top: 20px; }
+
+        .menu-divider {
+            display: flex; align-items: center; gap: 10px;
+            color: #bbb; font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+            margin-bottom: 16px;
+        }
+        .menu-divider::before, .menu-divider::after {
+            content: ''; flex: 1; height: 1px; background: #e0e0e0;
+        }
+
+        .menu-category-tabs {
+            display: flex; gap: 8px; overflow-x: auto;
+            padding-bottom: 6px; scrollbar-width: none; margin-bottom: 14px;
+        }
+        .menu-category-tabs::-webkit-scrollbar { display: none; }
+
+        .menu-tab {
+            background: #f0f0f0; color: #667eea; border: none; border-radius: 20px;
+            padding: 7px 14px; font-size: 12px; font-weight: 700; font-family: inherit;
+            cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
+        }
+        .menu-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; box-shadow: 0 3px 10px rgba(102,126,234,0.3);
+        }
+
+        .menu-list {
+            display: flex; flex-direction: column;
+            max-height: 320px; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
+        }
+
+        .menu-cat-header {
+            font-size: 10px; font-weight: 800; color: #a78bfa;
+            letter-spacing: 1px; text-transform: uppercase; padding: 10px 2px 4px;
+        }
+
+        .menu-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 9px 4px; border-bottom: 1px solid #f0f0f0;
+        }
+        .menu-item:last-child { border-bottom: none; }
+
+        .menu-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #a78bfa; flex-shrink: 0; margin-top: 5px;
+        }
+        .menu-item-name { font-size: 14px; font-weight: 700; color: #222; line-height: 1.3; }
+        .menu-item-desc { font-size: 12px; color: #999; font-weight: 500; margin-top: 1px; }
+
+        .menu-allergen-note {
+            background: #fff9e6; border: 1px solid #fde68a; border-radius: 10px;
+            padding: 10px 14px; font-size: 12px; color: #92400e;
+            font-weight: 600; text-align: center; margin-top: 14px;
+        }
+
+        .menu-loading { text-align: center; padding: 20px; color: #bbb; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="lang-switcher" onclick="toggleLangMenu()">
+                <span id="currentFlag">🇹🇷</span>
+            </div>
+            <div class="lang-menu" id="langMenu">
+                <div class="lang-option" onclick="changeLang('tr')">🇹🇷 Türkçe</div>
+                <div class="lang-option" onclick="changeLang('en')">🇬🇧 English</div>
+                <div class="lang-option" onclick="changeLang('ru')">🇷🇺 Русский</div>
+                <div class="lang-option" onclick="changeLang('de')">🇩🇪 Deutsch</div>
+                <div class="lang-option" onclick="changeLang('pl')">🇵🇱 Polski</div>
+                <div class="lang-option" onclick="changeLang('fr')">🇫🇷 Français</div>
+                <div class="lang-option" onclick="changeLang('nl')">🇳🇱 Nederlands</div>
+                <div class="lang-option" onclick="changeLang('cs')">🇨🇿 Čeština</div>
+                <div class="lang-option" onclick="changeLang('ro')">🇷🇴 Română</div>
+            </div>
+            <h1 id="headerTitle">🍽️ Hoş Geldiniz</h1>
+            <p id="headerSubtitle">Size nasıl yardımcı olabiliriz?</p>
+        </div>
+
+        <div class="content">
+            <div class="masa-info">
+                <div class="label" id="tableLabel">Masa Numaranız</div>
+                <div class="masa-no" id="masaNo">12</div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" id="waiterCallBtn" onclick="garsonCagir()">
+                    <span class="emoji" id="btnEmoji">👨‍🍳</span>
+                    <span id="btnWaiter">Garson Çağır</span>
+                </button>
+            </div>
+
+            <div class="status-panel" id="statusPanel">
+                <h3 id="statusTitle">⏱️ Talebiniz Alındı</h3>
+                <p id="statusText">Garsonumuz en kısa sürede masanıza gelecektir.</p>
+            </div>
+
+            <!-- MENÜ -->
+            <div class="menu-section">
+                <div class="menu-divider" id="menuDividerTitle">İÇECEK MENÜSÜ</div>
+                <div class="menu-category-tabs" id="menuTabs">
+                    <div class="menu-loading">Yükleniyor...</div>
+                </div>
+                <div class="menu-list" id="menuList"></div>
+                <div class="menu-allergen-note">
+                    ℹ️ <span id="allergenNote">Alerjeniniz varsa lütfen garsonumuzu bilgilendirin.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-title" id="notificationTitle"></div>
+        <div class="notification-text" id="notificationText"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Çeviri veritabanı
+        const translations = {
+            tr: {
+                flag: '🇹🇷',
+                headerTitle: '🍽️ Hoş Geldiniz',
+                headerSubtitle: 'Size nasıl yardımcı olabiliriz?',
+                tableLabel: 'Masa Numaranız',
+                btnWaiter: 'Garson Çağır',
+                statusTitle: '⏱️ Talebiniz Alındı',
+                waiterStatus: 'Garsonumuz en kısa sürede masanıza gelecektir. Ortalama bekleme süresi: 2-3 dakika.',
+                waiterNotifTitle: '✅ Garson Çağrıldı!',
+                waiterNotifText: 'Masa {table} - Garsonumuz yolda!',
+                errorTitle: '⚠️ Hata',
+                errorText: 'Bağlantı sorunu. Lütfen tekrar deneyin.',
+                allergenNote: 'Alerjeniniz varsa lütfen garsonumuzu bilgilendirin.',
+                menuTitle: 'İÇECEK MENÜSÜ',
+                cooldown: 's sonra tekrar çağırabilirsiniz'
+            },
+            en: {
+                flag: '🇬🇧',
+                headerTitle: '🍽️ Welcome',
+                headerSubtitle: 'How can we help you?',
+                tableLabel: 'Your Table Number',
+                btnWaiter: 'Call Waiter',
+                statusTitle: '⏱️ Request Received',
+                waiterStatus: 'Our waiter will be at your table shortly. Average wait time: 2-3 minutes.',
+                waiterNotifTitle: '✅ Waiter Called!',
+                waiterNotifText: 'Table {table} - Waiter on the way!',
+                errorTitle: '⚠️ Error',
+                errorText: 'Connection problem. Please try again.',
+                allergenNote: 'Please inform our staff if you have any allergies.',
+                menuTitle: 'DRINKS MENU',
+                cooldown: 's later you can call again'
+            },
+            ru: {
+                flag: '🇷🇺',
+                headerTitle: '🍽️ Добро пожаловать',
+                headerSubtitle: 'Как мы можем вам помочь?',
+                tableLabel: 'Номер вашего стола',
+                btnWaiter: 'Позвать официанта',
+                statusTitle: '⏱️ Запрос получен',
+                waiterStatus: 'Официант скоро подойдёт к вашему столу. Среднее время ожидания: 2-3 минуты.',
+                waiterNotifTitle: '✅ Официант вызван!',
+                waiterNotifText: 'Стол {table} - Официант уже идёт!',
+                errorTitle: '⚠️ Ошибка',
+                errorText: 'Проблема с подключением. Пожалуйста, попробуйте снова.',
+                allergenNote: 'Сообщите нашему персоналу, если у вас есть аллергия.',
+                menuTitle: 'МЕНЮ НАПИТКОВ',
+                cooldown: 'с — повторный вызов доступен через'
+            },
+            de: {
+                flag: '🇩🇪',
+                headerTitle: '🍽️ Willkommen',
+                headerSubtitle: 'Wie können wir Ihnen helfen?',
+                tableLabel: 'Ihre Tischnummer',
+                btnWaiter: 'Kellner rufen',
+                statusTitle: '⏱️ Anfrage erhalten',
+                waiterStatus: 'Unser Kellner wird in Kürze an Ihrem Tisch sein. Durchschnittliche Wartezeit: 2-3 Minuten.',
+                waiterNotifTitle: '✅ Kellner gerufen!',
+                waiterNotifText: 'Tisch {table} - Kellner ist unterwegs!',
+                errorTitle: '⚠️ Fehler',
+                errorText: 'Verbindungsproblem. Bitte versuchen Sie es erneut.',
+                allergenNote: 'Bitte informieren Sie unser Personal, wenn Sie Allergien haben.',
+                menuTitle: 'GETRÄNKEKARTE',
+                cooldown: 's — erneuter Ruf möglich'
+            },
+            pl: {
+                flag: '🇵🇱',
+                headerTitle: '🍽️ Witamy',
+                headerSubtitle: 'Jak możemy Ci pomóc?',
+                tableLabel: 'Numer Twojego stolika',
+                btnWaiter: 'Wezwij kelnera',
+                statusTitle: '⏱️ Zgłoszenie przyjęte',
+                waiterStatus: 'Nasz kelner wkrótce podejdzie do Twojego stolika. Średni czas oczekiwania: 2-3 minuty.',
+                waiterNotifTitle: '✅ Kelner wezwany!',
+                waiterNotifText: 'Stolik {table} - Kelner już idzie!',
+                errorTitle: '⚠️ Błąd',
+                errorText: 'Problem z połączeniem. Spróbuj ponownie.',
+                allergenNote: 'Poinformuj nasz personel, jeśli masz alergie.',
+                menuTitle: 'MENU NAPOJÓW',
+                cooldown: 's — możesz ponownie wezwać'
+            },
+            fr: {
+                flag: '🇫🇷',
+                headerTitle: '🍽️ Bienvenue',
+                headerSubtitle: 'Comment pouvons-nous vous aider?',
+                tableLabel: 'Votre numéro de table',
+                btnWaiter: 'Appeler le serveur',
+                statusTitle: '⏱️ Demande reçue',
+                waiterStatus: 'Notre serveur sera à votre table sous peu. Temps d\'attente moyen: 2-3 minutes.',
+                waiterNotifTitle: '✅ Serveur appelé!',
+                waiterNotifText: 'Table {table} - Le serveur arrive!',
+                errorTitle: '⚠️ Erreur',
+                errorText: 'Problème de connexion. Veuillez réessayer.',
+                allergenNote: 'Veuillez informer notre personnel si vous avez des allergies.',
+                menuTitle: 'CARTE DES BOISSONS',
+                cooldown: 's — nouvel appel possible'
+            },
+            nl: {
+                flag: '🇳🇱',
+                headerTitle: '🍽️ Welkom',
+                headerSubtitle: 'Hoe kunnen we u helpen?',
+                tableLabel: 'Uw tafelnummer',
+                btnWaiter: 'Ober roepen',
+                statusTitle: '⏱️ Verzoek ontvangen',
+                waiterStatus: 'Onze ober komt zo bij uw tafel. Gemiddelde wachttijd: 2-3 minuten.',
+                waiterNotifTitle: '✅ Ober geroepen!',
+                waiterNotifText: 'Tafel {table} - Ober is onderweg!',
+                errorTitle: '⚠️ Fout',
+                errorText: 'Verbindingsprobleem. Probeer het opnieuw.',
+                allergenNote: 'Informeer ons personeel als u allergieën heeft.',
+                menuTitle: 'DRANKENMENU',
+                cooldown: 's — opnieuw oproepen mogelijk'
+            },
+            cs: {
+                flag: '🇨🇿',
+                headerTitle: '🍽️ Vítejte',
+                headerSubtitle: 'Jak vám můžeme pomoci?',
+                tableLabel: 'Číslo vašeho stolu',
+                btnWaiter: 'Zavolat číšníka',
+                statusTitle: '⏱️ Žádost přijata',
+                waiterStatus: 'Náš číšník brzy přijde k vašemu stolu. Průměrná čekací doba: 2-3 minuty.',
+                waiterNotifTitle: '✅ Číšník zavolán!',
+                waiterNotifText: 'Stůl {table} - Číšník je na cestě!',
+                errorTitle: '⚠️ Chyba',
+                errorText: 'Problém s připojením. Zkuste to prosím znovu.',
+                allergenNote: 'Informujte prosím náš personál, pokud máte alergie.',
+                menuTitle: 'NÁPOJOVÝ LÍSTEK',
+                cooldown: 's — lze znovu zavolat'
+            },
+            ro: {
+                flag: '🇷🇴',
+                headerTitle: '🍽️ Bun venit',
+                headerSubtitle: 'Cum vă putem ajuta?',
+                tableLabel: 'Numărul mesei dumneavoastră',
+                btnWaiter: 'Chemați ospătarul',
+                statusTitle: '⏱️ Cerere primită',
+                waiterStatus: 'Ospătarul nostru va veni în curând la masa dumneavoastră. Timp mediu de așteptare: 2-3 minute.',
+                waiterNotifTitle: '✅ Ospătar chemat!',
+                waiterNotifText: 'Masa {table} - Ospătarul vine!',
+                errorTitle: '⚠️ Eroare',
+                errorText: 'Problemă de conexiune. Vă rugăm să încercați din nou.',
+                allergenNote: 'Vă rugăm să informați personalul nostru dacă aveți alergii.',
+                menuTitle: 'MENIU BĂUTURI',
+                cooldown: 's — puteți apela din nou'
+            }
+        };
+
+        // Firebase yapılandırması
+        const firebaseConfig = {
+            apiKey: "AIzaSyBVzDFPsQslIIvghFXkaA2ynR-gnmFFwWo",
+            authDomain: "noxinn-havuz.firebaseapp.com",
+            projectId: "noxinn-havuz",
+            storageBucket: "noxinn-havuz.firebasestorage.app",
+            messagingSenderId: "507130057258",
+            appId: "1:507130057258:web:3e3c098be9d71c575e2953"
+        };
+
+        // Firebase başlat
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let menuReady = false;
+
+        // URL'den masa numarasını al
+        const urlParams = new URLSearchParams(window.location.search);
+        const masaNumarasi = urlParams.get('masa') || '12';
+        document.getElementById('masaNo').textContent = masaNumarasi;
+
+        // Dil algılama
+        let currentLang = localStorage.getItem('preferredLang');
+        
+        if (!currentLang) {
+            const browserLang = navigator.language || navigator.userLanguage;
+            const langCode = browserLang.split('-')[0].toLowerCase();
+            currentLang = translations[langCode] ? langCode : 'en';
+            localStorage.setItem('preferredLang', currentLang);
+        }
+
+        // Sayfa yüklendiğinde dili uygula
+        updateLanguage(currentLang);
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            if (menuReady) { renderMenuTabs(); renderMenuList(); }
+            const an = document.getElementById('allergenNote');
+            if (an && translations[lang]) an.textContent = translations[lang].allergenNote || translations['en'].allergenNote || '';
+            const mt = document.getElementById('menuDividerTitle');
+            if (mt && translations[lang]) mt.textContent = translations[lang].menuTitle || translations['en'].menuTitle || '';
+            const t = translations[lang];
+            
+            document.getElementById('currentFlag').textContent = t.flag;
+            document.getElementById('headerTitle').textContent = t.headerTitle;
+            document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+            document.getElementById('tableLabel').textContent = t.tableLabel;
+            document.getElementById('btnWaiter').textContent = t.btnWaiter;
+            document.getElementById('statusTitle').textContent = t.statusTitle;
+            
+            // HTML lang attribute'unu güncelle
+            document.documentElement.lang = lang;
+            
+            // Aktif dil seçeneğini işaretle
+            document.querySelectorAll('.lang-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+        }
+
+        window.toggleLangMenu = function() {
+            const menu = document.getElementById('langMenu');
+            menu.classList.toggle('show');
+        }
+
+        window.changeLang = function(lang) {
+            localStorage.setItem('preferredLang', lang);
+            updateLanguage(lang);
+            toggleLangMenu();
+        }
+
+        // Menü dışına tıklanınca kapat
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('langMenu');
+            const switcher = document.querySelector('.lang-switcher');
+            if (!menu.contains(e.target) && !switcher.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+
+        function showNotification(title, text, type = 'success') {
+            const notification = document.getElementById('notification');
+            document.getElementById('notificationTitle').textContent = title;
+            document.getElementById('notificationText').textContent = text;
+            notification.className = 'notification show ' + type;
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function showStatus(text) {
+            const panel = document.getElementById('statusPanel');
+            document.getElementById('statusText').textContent = text;
+            panel.classList.add('active');
+
+            setTimeout(() => {
+                panel.classList.remove('active');
+            }, 10000);
+        }
+
+        async function addRequest(type, emoji) {
+            try {
+                await addDoc(collection(db, "requests"), {
+                    masa: masaNumarasi,
+                    type: type,
+                    emoji: emoji,
+                    status: 'pending',
+                    language: currentLang,
+                    timestamp: serverTimestamp(),
+                    createdAt: new Date().toISOString()
+                });
+                console.log('✅ Talep Firebase\'e eklendi');
+            } catch (error) {
+                console.error('❌ Firebase hatası:', error);
+                const t = translations[currentLang];
+                showNotification(t.errorTitle, t.errorText, 'info');
+            }
+        }
+
+        const COOLDOWN_SEC = 120; // 2 dakika
+        let cooldownInterval = null;
+
+        // Sayfa yüklenince daha önce basılmışsa cooldown'ı geri yükle
+        (function restoreCooldown() {
+            const key   = 'waiterCooldown_' + (new URLSearchParams(window.location.search).get('masa') || '0');
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                const remaining = Math.ceil((parseInt(saved) - Date.now()) / 1000);
+                if (remaining > 0) startCooldownUI(remaining, key);
+            }
+        })();
+
+        function startCooldownUI(seconds, storageKey) {
+            const btn   = document.getElementById('waiterCallBtn');
+            const label = document.getElementById('btnWaiter');
+            const emoji = document.getElementById('btnEmoji');
+            btn.disabled = true;
+            btn.style.opacity = '0.65';
+            btn.style.cursor  = 'not-allowed';
+
+            let remaining = seconds;
+            const tc = translations[currentLang] || translations['tr'];
+            label.textContent = remaining + (tc.cooldown || 's sonra tekrar çağırabilirsiniz');
+            emoji.textContent = '⏳';
+
+            cooldownInterval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(cooldownInterval);
+                    btn.disabled      = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor  = 'pointer';
+                    emoji.textContent = '👨‍🍳';
+                    // dil güncellenmiş olabilir, tekrar uygula
+                    const t = translations[currentLang];
+                    label.textContent = t ? t.btnWaiter : 'Garson Çağır';
+                    if (storageKey) localStorage.removeItem(storageKey);
+                } else {
+                    const tc2 = translations[currentLang] || translations['tr'];
+                    label.textContent = remaining + (tc2.cooldown || 's sonra tekrar çağırabilirsiniz');
+                }
+            }, 1000);
+        }
+
+        window.garsonCagir = async function() {
+            const btn = document.getElementById('waiterCallBtn');
+            if (btn.disabled) return;
+
+            const key = 'waiterCooldown_' + masaNumarasi;
+            localStorage.setItem(key, Date.now() + COOLDOWN_SEC * 1000);
+
+            const t = translations[currentLang];
+            await addRequest('Waiter', '👨‍🍳');
+            showNotification(
+                t.waiterNotifTitle,
+                t.waiterNotifText.replace('{table}', masaNumarasi),
+                'success'
+            );
+            showStatus(t.waiterStatus);
+            startCooldownUI(COOLDOWN_SEC, key);
+        }
+
+        // ── MENÜ (Firebase'den) ────────────────────────────────
+        import { collection as col2, onSnapshot as onSnap2,
+                 query as q2, orderBy as ob2,
+                 doc as doc2, getDoc as getDoc2, getDocs as getDocs2 }
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let allCategories  = [];
+        let allFoods       = [];
+        let currentMenuCat = '__all__';
+
+        const CACHE_KEY_CATS  = 'menuCache_categories';
+        const CACHE_KEY_FOODS = 'menuCache_foods';
+        const CACHE_KEY_VER   = 'menuCache_version';
+
+        // Cache'den yükle → anında göster, sonra versiyon kontrol et
+        (function loadFromCache() {
+            try {
+                const cats  = localStorage.getItem(CACHE_KEY_CATS);
+                const foods = localStorage.getItem(CACHE_KEY_FOODS);
+                if (cats && foods) {
+                    allCategories = JSON.parse(cats);
+                    allFoods      = JSON.parse(foods);
+                    menuReady     = true;
+                    renderMenuTabs();
+                    renderMenuList();
+                }
+            } catch(e) {}
+        })();
+
+        // Firebase'deki versiyon numarasını kontrol et
+        // Eğer cache'dekinden farklıysa güncelle, aynıysa Firebase'e istek atma
+        async function checkMenuVersion() {
+            try {
+                const verDoc = await getDoc2(doc2(db, "menuMeta", "version"));
+                const remoteVer = verDoc.exists() ? (verDoc.data().v || 0) : 0;
+                const localVer  = parseInt(localStorage.getItem(CACHE_KEY_VER) || '-1');
+
+                if (remoteVer !== localVer) {
+                    // Versiyon farklı — gerçek veriyi çek ve dinlemeye başla
+                    startMenuListeners(remoteVer);
+                }
+                // Versiyon aynı — cache geçerli, Firebase'e istek atma
+            } catch(e) {
+                // Bağlantı sorunu varsa cache'den devam et
+            }
+        }
+
+        async function startMenuListeners(newVer) {
+            try {
+                // Kategorileri tek seferlik çek
+                const catSnap = await getDocs2(q2(col2(db, "menuCategories"), ob2("order")));
+                allCategories = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                localStorage.setItem(CACHE_KEY_CATS, JSON.stringify(allCategories));
+                renderMenuTabs();
+
+                // Yemekleri tek seferlik çek
+                const foodSnap = await getDocs2(col2(db, "menuItems"));
+                allFoods  = foodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                menuReady = true;
+                localStorage.setItem(CACHE_KEY_FOODS, JSON.stringify(allFoods));
+                localStorage.setItem(CACHE_KEY_VER, String(newVer));
+                renderMenuTabs();
+                renderMenuList();
+            } catch(e) {
+                // Hata olursa cache'den devam et
+            }
+        }
+
+        checkMenuVersion();
+
+        function renderMenuTabs() {
+            const tabs = document.getElementById('menuTabs');
+            if (allCategories.length === 0) {
+                tabs.innerHTML = '';
+                return;
+            }
+            tabs.innerHTML =
+                `<button class="menu-tab ${currentMenuCat === '__all__' ? 'active' : ''}"
+                     onclick="setMenuCat('__all__', this)">Tümü</button>` +
+                allCategories.map(c => {
+                    const cname = (c.names && (c.names[currentLang] || c.names['en'] || c.names['tr'])) || c.name || '';
+                    return `<button class="menu-tab ${currentMenuCat === c.id ? 'active' : ''}"
+                         onclick="setMenuCat('${c.id}', this)">${cname}</button>`;
+                }).join('');
+        }
+
+        function renderMenuList() {
+            const list = document.getElementById('menuList');
+            const lang = currentLang || 'tr';
+            const activeFoods = allFoods.filter(f => f.active !== false).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+            if (allCategories.length === 0 || activeFoods.length === 0) {
+                list.innerHTML = '<div class="menu-loading">Menü yakında güncellenecek.</div>';
+                return;
+            }
+
+            if (currentMenuCat === '__all__') {
+                list.innerHTML = allCategories.map(cat => {
+                    const items = activeFoods.filter(f => f.cat === cat.id);
+                    if (items.length === 0) return '';
+                    const cname = (cat.names && (cat.names[lang] || cat.names['en'] || cat.names['tr'])) || cat.name || '';
+                    return `<div class="menu-cat-header">${cname}</div>` +
+                        items.map(itemHTML).join('');
+                }).join('');
+            } else {
+                const items = activeFoods.filter(f => f.cat === currentMenuCat);
+                list.innerHTML = items.length
+                    ? items.map(itemHTML).join('')
+                    : '<div class="menu-loading">Bu kategoride aktif yemek yok.</div>';
+            }
+        }
+
+        function itemHTML(item) {
+            const lang = currentLang || 'tr';
+            const name = (item.names && (item.names[lang] || item.names['en'] || item.names['tr'])) || item.name || '';
+            const desc = (item.descs && (item.descs[lang] || item.descs['en'] || item.descs['tr'])) || item.desc || '';
+            return `<div class="menu-item">
+                <div class="menu-dot"></div>
+                <div>
+                    <div class="menu-item-name">${name}</div>
+                    ${desc ? `<div class="menu-item-desc">${desc}</div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        window.setMenuCat = function(id, el) {
+            currentMenuCat = id;
+            document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            renderMenuList();
+        };
+        // ── MENÜ SONU ──────────────────────────────────────────
+    </script>
+</body>
+</html>

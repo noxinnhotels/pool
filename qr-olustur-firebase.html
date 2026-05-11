@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kod Oluşturucu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            background: #1a1a2e;
+            color: white;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .topbar h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            letter-spacing: 0.5px;
+        }
+        .topbar span { font-size: 13px; opacity: 0.5; }
+
+        /* ── LAYOUT ── */
+        .layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* ── SOL PANEL (AYARLAR) ── */
+        .sidebar {
+            background: white;
+            border-right: 1px solid #e8e8e8;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 14px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .section-title:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+        .form-row { margin-bottom: 14px; }
+        .form-row label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .form-row input[type="text"],
+        .form-row input[type="number"],
+        .form-row textarea,
+        .form-row select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        .form-row input:focus,
+        .form-row textarea:focus,
+        .form-row select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-row textarea { min-height: 120px; resize: vertical; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        /* Mod seçici */
+        .mode-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 3px;
+            gap: 2px;
+            margin-bottom: 20px;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 8px 6px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #888;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .mode-tab.active { background: white; color: #1a1a2e; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+        /* Renk seçici */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .color-swatch.selected { border-color: #1a1a2e; transform: scale(1.1); }
+        .color-swatch:hover { transform: scale(1.08); }
+
+        .custom-color-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .custom-color-row label { font-size: 12px; color: #666; font-weight: 500; flex-shrink: 0; }
+        input[type="color"] {
+            width: 36px; height: 36px;
+            border: none; border-radius: 6px;
+            cursor: pointer; padding: 2px;
+            background: none;
+        }
+
+        /* Stil kartları */
+        .style-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .style-card {
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .style-card:hover { border-color: #c7d2fe; }
+        .style-card.selected { border-color: #667eea; background: #f5f3ff; }
+        .style-card-preview {
+            height: 50px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .style-card-label { font-size: 11px; font-weight: 600; color: #555; }
+
+        /* Logo upload */
+        .logo-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .logo-upload-area:hover { border-color: #667eea; background: #f5f3ff; }
+        .logo-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .logo-preview { max-height: 60px; max-width: 160px; border-radius: 6px; margin: 0 auto 6px; display: block; }
+        .logo-upload-text { font-size: 12px; color: #999; }
+
+        /* Üst/alt yazı */
+        .generate-btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        .generate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .print-btn {
+            width: 100%;
+            padding: 11px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+        .print-btn:hover { background: #059669; }
+
+        /* ── SAĞ PANEL (ÖNİZLEME) ── */
+        .preview-area {
+            padding: 28px;
+            overflow-y: auto;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .preview-header h2 { font-size: 16px; color: #333; font-weight: 600; }
+        .preview-count { font-size: 13px; color: #999; background: #f0f0f0; padding: 4px 10px; border-radius: 20px; }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        /* ── QR KART STİLLERİ ── */
+
+        /* Stil 1: Klasik */
+        .qr-card.style-classic {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        /* Stil 2: Modern */
+        .qr-card.style-modern {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            page-break-inside: avoid;
+        }
+        .qr-card.style-modern .card-header {
+            padding: 14px 16px;
+            color: white;
+        }
+        .qr-card.style-modern .card-body { padding: 16px; text-align: center; }
+
+        /* Stil 3: Minimal */
+        .qr-card.style-minimal {
+            background: white;
+            border-top: 4px solid currentColor;
+            padding: 16px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        /* Stil 4: Koyu */
+        .qr-card.style-dark {
+            border-radius: 14px;
+            padding: 20px 16px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        .qr-card-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        .qr-card-subtitle {
+            font-size: 12px;
+            opacity: 0.65;
+            margin-bottom: 12px;
+        }
+        .qr-code-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .qr-code-wrap canvas, .qr-code-wrap img { border-radius: 6px; }
+
+        .qr-card-footer {
+            font-size: 11px;
+            opacity: 0.5;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0,0,0,0.06);
+        }
+        .qr-card.style-dark .qr-card-footer { border-top-color: rgba(255,255,255,0.1); }
+
+        .test-link {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #bbb;
+        }
+        .empty-state div { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ── PRINT ── */
+        @media print {
+            .topbar, .sidebar { display: none !important; }
+            .layout { grid-template-columns: 1fr; }
+            .preview-area { padding: 10px; }
+            .preview-header { display: none; }
+            .qr-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .test-link { display: none !important; }
+            body { background: white; }
+        }
+
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid #e8e8e8; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <h1>🍽️ QR Kod Oluşturucu</h1>
+    <span>Tasarım özelleştirme destekli</span>
+</div>
+
+<div class="layout">
+
+    <!-- SOL: AYARLAR -->
+    <div class="sidebar">
+
+        <!-- MOD SEÇİCİ -->
+        <div class="section-title" style="margin-top:0;border-top:none;padding-top:0">Masa Tanımlama Modu</div>
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="setMode('numara',this)">🔢 Numara</button>
+            <button class="mode-tab" onclick="setMode('isim',this)">📝 İsim</button>
+            <button class="mode-tab" onclick="setMode('karisik',this)">🎯 İkisi</button>
+        </div>
+
+        <!-- NUMARA MODU -->
+        <div id="mode-numara">
+            <div class="two-col">
+                <div class="form-row">
+                    <label>Başlangıç No</label>
+                    <input type="number" id="baslangic" value="1" min="1">
+                </div>
+                <div class="form-row">
+                    <label>Bitiş No</label>
+                    <input type="number" id="bitis" value="10" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- İSİM MODU -->
+        <div id="mode-isim" style="display:none">
+            <div class="form-row">
+                <label>Lokasyon İsimleri (her satıra bir isim)</label>
+                <textarea id="isimlerText" placeholder="VIP Lounge&#10;Havuz Başı&#10;Teras">VIP Lounge
+Havuz Başı
+Teras</textarea>
+            </div>
+        </div>
+
+        <!-- KARISIK MODU -->
+        <div id="mode-karisik" style="display:none">
+            <div class="form-row">
+                <label>Format: NUMARA | İSİM</label>
+                <textarea id="karisikText" placeholder="1&#10;2 | VIP Masa&#10;Teras">1
+2 | VIP Masa
+3
+Teras</textarea>
+            </div>
+        </div>
+
+        <!-- GENEL BİLGİLER -->
+        <div class="section-title">Kart Bilgileri</div>
+        <div class="form-row">
+            <label>İşletme / Otel Adı</label>
+            <input type="text" id="isletmeAdi" value="Otelimize Hoş Geldiniz">
+        </div>
+        <div class="form-row">
+            <label>Alt Bilgi Yazısı</label>
+            <input type="text" id="altYazi" value="📱 QR'ı okutun, hizmet talep edin">
+        </div>
+
+        <!-- LOGO -->
+        <div class="section-title">Logo (Opsiyonel)</div>
+        <div class="logo-upload-area" id="logoUploadArea">
+            <input type="file" accept="image/*" onchange="handleLogoUpload(event)">
+            <img id="logoPreview" class="logo-preview" style="display:none">
+            <div class="logo-upload-text" id="logoUploadText">
+                🖼️ Logo yüklemek için tıklayın<br>
+                <small>PNG, JPG — max 2MB</small>
+            </div>
+        </div>
+        <button onclick="clearLogo()" id="clearLogoBtn" style="display:none;width:100%;margin-top:6px;padding:7px;border:1px solid #ddd;border-radius:7px;background:white;font-size:12px;cursor:pointer;color:#999;">✕ Logoyu Kaldır</button>
+
+        <!-- RENK TEMASI -->
+        <div class="section-title">Renk Teması</div>
+        <div class="color-grid" id="colorGrid">
+            <!-- JS ile doldurulacak -->
+        </div>
+        <div class="custom-color-row">
+            <label>Özel renk:</label>
+            <input type="color" id="customColor" value="#667eea" onchange="selectCustomColor(this.value)">
+            <span id="customColorHex" style="font-size:12px;color:#666;">#667eea</span>
+        </div>
+
+        <!-- KART STİLİ -->
+        <div class="section-title">Kart Stili</div>
+        <div class="style-grid">
+            <div class="style-card selected" onclick="selectStyle('classic',this)">
+                <div class="style-card-preview" style="background:#f5f5f5;border:2px solid #ddd;">📋</div>
+                <div class="style-card-label">Klasik</div>
+            </div>
+            <div class="style-card" onclick="selectStyle('modern',this)">
+                <div class="style-card-preview" style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:8px;">🎨</div>
+                <div class="style-card-label">Modern</div>
+            </div>
+            <div class="style-card" onclick="selectStyle('minimal',this)">
+                <div class="style-card-preview" style="background:white;border-top:4px solid #667eea;">✦</div>
+                <div class="style-card-label">Minimal</div>
+            </div>
+            <div class="style-card" onclick="selectStyle('dark',this)">
+                <div class="style-card-preview" style="background:#1a1a2e;border-radius:8px;">🌙</div>
+                <div class="style-card-label">Koyu</div>
+            </div>
+        </div>
+
+        <!-- QR BOYUTU -->
+        <div class="section-title">QR Boyutu</div>
+        <div class="form-row">
+            <input type="range" id="qrSize" min="120" max="220" value="160" style="width:100%"
+                   oninput="document.getElementById('qrSizeVal').textContent=this.value+'px'">
+            <div style="text-align:center;font-size:12px;color:#888;margin-top:4px">
+                <span id="qrSizeVal">160px</span>
+            </div>
+        </div>
+
+        <button class="generate-btn" onclick="generateAll()">🎯 QR Kodları Oluştur</button>
+        <button class="print-btn" onclick="window.print()">🖨️ Yazdır / PDF</button>
+
+    </div>
+
+    <!-- SAĞ: ÖNİZLEME -->
+    <div class="preview-area">
+        <div class="preview-header">
+            <h2>Önizleme</h2>
+            <span class="preview-count" id="previewCount">0 QR</span>
+        </div>
+        <div class="qr-grid" id="qrGrid">
+            <div class="empty-state">
+                <div>🎯</div>
+                <p>Sol panelden ayarları yapıp<br>"QR Kodları Oluştur" butonuna basın</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const BASE_URL = 'https://noxinndeluxe.github.io/havuz/garson-cagir-firebase.html';
+
+    let currentMode  = 'numara';
+    let currentColor = '#667eea';
+    let currentStyle = 'classic';
+    let logoDataUrl  = null;
+
+    // ── RENKLER ──────────────────────────────────────────────
+    const PRESET_COLORS = [
+        '#667eea','#764ba2','#f59e0b','#10b981',
+        '#ef4444','#3b82f6','#ec4899','#1a1a2e',
+        '#059669','#dc2626','#7c3aed','#0891b2',
+    ];
+
+    function initColors() {
+        const grid = document.getElementById('colorGrid');
+        grid.innerHTML = PRESET_COLORS.map(c => `
+            <div class="color-swatch ${c === currentColor ? 'selected' : ''}"
+                 style="background:${c}"
+                 onclick="selectColor('${c}',this)"
+                 title="${c}"></div>
+        `).join('');
+    }
+
+    function selectColor(hex, el) {
+        currentColor = hex;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('customColor').value = hex;
+        document.getElementById('customColorHex').textContent = hex;
+    }
+
+    function selectCustomColor(hex) {
+        currentColor = hex;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        document.getElementById('customColorHex').textContent = hex;
+    }
+
+    // ── STİL ─────────────────────────────────────────────────
+    function selectStyle(style, el) {
+        currentStyle = style;
+        document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    // ── MOD ──────────────────────────────────────────────────
+    function setMode(mode, btn) {
+        currentMode = mode;
+        ['numara','isim','karisik'].forEach(m => {
+            document.getElementById('mode-' + m).style.display = m === mode ? 'block' : 'none';
+        });
+        document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // ── LOGO ─────────────────────────────────────────────────
+    function handleLogoUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { alert('Logo 2MB\'dan küçük olmalı'); return; }
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            logoDataUrl = ev.target.result;
+            const prev = document.getElementById('logoPreview');
+            prev.src = logoDataUrl;
+            prev.style.display = 'block';
+            document.getElementById('logoUploadText').style.display = 'none';
+            document.getElementById('clearLogoBtn').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearLogo() {
+        logoDataUrl = null;
+        document.getElementById('logoPreview').style.display = 'none';
+        document.getElementById('logoUploadText').style.display = 'block';
+        document.getElementById('clearLogoBtn').style.display = 'none';
+    }
+
+    // ── GENERATE ─────────────────────────────────────────────
+    function generateAll() {
+        const isletme = document.getElementById('isletmeAdi').value.trim();
+        const altYazi = document.getElementById('altYazi').value.trim();
+        const grid    = document.getElementById('qrGrid');
+        const qrSize  = parseInt(document.getElementById('qrSize').value);
+
+        let masalar = [];
+
+        if (currentMode === 'numara') {
+            const bas  = parseInt(document.getElementById('baslangic').value);
+            const bit  = parseInt(document.getElementById('bitis').value);
+            for (let i = bas; i <= bit; i++) masalar.push({ numara: i, isim: null });
+
+        } else if (currentMode === 'isim') {
+            const isimler = document.getElementById('isimlerText').value
+                .split('\n').map(s => s.trim()).filter(Boolean);
+            isimler.forEach(isim => masalar.push({ numara: null, isim }));
+
+        } else {
+            const satirlar = document.getElementById('karisikText').value
+                .split('\n').map(s => s.trim()).filter(Boolean);
+            satirlar.forEach(satir => {
+                if (satir.includes('|')) {
+                    const [n, i] = satir.split('|').map(s => s.trim());
+                    masalar.push({ numara: n || null, isim: i || null });
+                } else if (/^\d+$/.test(satir)) {
+                    masalar.push({ numara: satir, isim: null });
+                } else {
+                    masalar.push({ numara: null, isim: satir });
+                }
+            });
+        }
+
+        grid.innerHTML = '';
+        document.getElementById('previewCount').textContent = masalar.length + ' QR';
+
+        masalar.forEach(({ numara, isim }) => {
+            createCard(grid, numara, isim, isletme, altYazi, qrSize);
+        });
+    }
+
+    function createCard(container, numara, isim, isletme, altYazi, qrSize) {
+        let baslik = numara && isim ? `Masa ${numara} — ${isim}` : numara ? `Masa ${numara}` : isim;
+        const urlVal = numara || isim;
+        const url    = `${BASE_URL}?masa=${encodeURIComponent(urlVal)}`;
+        const qrId   = 'qr_' + Math.random().toString(36).slice(2);
+
+        const card = document.createElement('div');
+        card.className = `qr-card style-${currentStyle}`;
+
+        const logoHTML = logoDataUrl
+            ? `<img src="${logoDataUrl}" style="max-height:40px;max-width:120px;object-fit:contain;margin-bottom:8px;border-radius:4px;">`
+            : '';
+
+        if (currentStyle === 'classic') {
+            card.style.borderColor = currentColor;
+            card.innerHTML = `
+                ${logoHTML}
+                <div class="qr-card-title" style="color:${currentColor}">${baslik}</div>
+                <div class="qr-card-subtitle">${isletme}</div>
+                <div class="qr-code-wrap"><div id="${qrId}"></div></div>
+                <div class="qr-card-footer">${altYazi}</div>
+                <a href="${url}" target="_blank" class="test-link">Test Et</a>`;
+
+        } else if (currentStyle === 'modern') {
+            card.innerHTML = `
+                <div class="card-header" style="background:${currentColor}">
+                    ${logoHTML}
+                    <div class="qr-card-title" style="color:white">${baslik}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.7)">${isletme}</div>
+                </div>
+                <div class="card-body">
+                    <div class="qr-code-wrap"><div id="${qrId}"></div></div>
+                    <div class="qr-card-footer">${altYazi}</div>
+                    <a href="${url}" target="_blank" class="test-link">Test Et</a>
+                </div>`;
+
+        } else if (currentStyle === 'minimal') {
+            card.style.borderTopColor = currentColor;
+            card.innerHTML = `
+                ${logoHTML}
+                <div class="qr-card-title" style="color:#222">${baslik}</div>
+                <div class="qr-card-subtitle" style="color:${currentColor}">${isletme}</div>
+                <div class="qr-code-wrap"><div id="${qrId}"></div></div>
+                <div class="qr-card-footer">${altYazi}</div>
+                <a href="${url}" target="_blank" class="test-link">Test Et</a>`;
+
+        } else if (currentStyle === 'dark') {
+            card.style.background = '#1a1a2e';
+            card.innerHTML = `
+                ${logoHTML ? `<div style="text-align:center">${logoHTML}</div>` : ''}
+                <div class="qr-card-title" style="color:${currentColor}">${baslik}</div>
+                <div class="qr-card-subtitle" style="color:rgba(255,255,255,0.5)">${isletme}</div>
+                <div class="qr-code-wrap"><div id="${qrId}"></div></div>
+                <div class="qr-card-footer" style="color:rgba(255,255,255,0.3);border-top-color:rgba(255,255,255,0.1)">${altYazi}</div>
+                <a href="${url}" target="_blank" class="test-link">Test Et</a>`;
+        }
+
+        container.appendChild(card);
+
+        // QR rengi: dark modda beyaz QR
+        const qrDark  = currentStyle === 'dark' ? '#ffffff' : currentColor;
+        const qrLight = currentStyle === 'dark' ? '#1a1a2e' : '#ffffff';
+
+        new QRCode(document.getElementById(qrId), {
+            text: url,
+            width: qrSize,
+            height: qrSize,
+            colorDark: qrDark,
+            colorLight: qrLight,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    // ── INIT ─────────────────────────────────────────────────
+    initColors();
+    generateAll();
+</script>
+</body>
+</html>
