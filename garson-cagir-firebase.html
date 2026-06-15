@@ -680,6 +680,8 @@
         const db = getFirestore(app);
 
         let menuReady = false;
+        let cart       = {};   // { itemId: { name, qty } }
+        let cartOpen   = false;
 
         // URL'den masa numarasını al
         const urlParams = new URLSearchParams(window.location.search);
@@ -861,8 +863,6 @@
         let allCategories  = [];
         let allFoods       = [];
         let currentMenuCat = '__all__';
-        let cart           = {};   // { itemId: { name, qty } }
-        let cartOpen       = false;
 
         const CACHE_KEY_CATS  = 'menuCache_categories';
         const CACHE_KEY_FOODS = 'menuCache_foods';
