@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Snack & Bar - Garson Paneli</title>
+    <!-- QZ Tray -->
+    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -849,43 +851,55 @@
             } catch(e) { showToast('⚠️ Hata', 'Silme başarısız.'); }
         };
 
-        // ── TERMAL YAZICI (ESC/POS — Web Serial) ─────────────────
-        window.connectPrinter = async function() {
-            if (!('serial' in navigator)) {
-                showToast('⚠️ Desteklenmiyor', 'Bu tarayıcı yazıcı bağlantısını desteklemiyor. Chrome/Edge kullanın.');
-                return;
-            }
-            try {
-                printerPort = await navigator.serial.requestPort();
-                await printerPort.open({ baudRate: 9600 });
-                document.getElementById('printerBtn').textContent = '🖨️ Yazıcı Bağlı';
-                document.getElementById('printerBtn').classList.add('connected');
-                showToast('🖨️ Bağlandı', 'Termal yazıcı hazır.');
-            } catch(e) {
-                showToast('⚠️ Hata', 'Yazıcı bağlanamadı.');
-            }
-        };
+        // ── QZ TRAY YAZICI ─────────────────────────────────────────
+        let qzConnected    = false;
+        let qzPrinterName  = null;
 
-        function buildReceiptText(order) {
-            const ESC = '\x1B', GS = '\x1D';
-            let r = '';
-            r += ESC + '@';                 // init
-            r += ESC + 'a' + '\x01';         // ortala
-            r += ESC + '!' + '\x18';         // çift boy
-            r += `MASA ${order.masa}\n`;
-            r += ESC + '!' + '\x00';         // normal
-            r += 'POOL SNACK & BAR\n';
-            r += '--------------------------------\n';
-            r += ESC + 'a' + '\x00';         // sola hizala
-            (order.items || []).forEach(i => {
-                r += `${String(i.qty).padEnd(4)}x  ${i.name}\n`;
-            });
-            r += '--------------------------------\n';
-            const time = order.createdAt ? new Date(order.createdAt) : new Date();
-            r += `Saat: ${time.toLocaleString('tr-TR')}\n`;
-            r += '\n\n\n';
-            r += GS + 'V' + '\x42' + '\x00'; // kağıt kes (destekleyen yazıcılarda)
-            return r;
+        async function connectQZ() {
+            try {
+                if (!qz.websocket.isActive()) {
+                    await qz.websocket.connect();
+                }
+                qzPrinterName = await qz.printers.getDefault();
+                qzConnected   = true;
+                document.getElementById('printerBtn').textContent = '🖨️ ' + qzPrinterName;
+                document.getElementById('printerBtn').classList.add('connected');
+                showToast('🖨️ Bağlandı', qzPrinterName + ' hazır.');
+            } catch(e) {
+                qzConnected = false;
+                showToast('⚠️ QZ Tray Hatası', 'QZ Tray sistem tepsisinde çalışıyor mu?');
+                console.error('QZ Tray:', e);
+            }
+        }
+
+        window.connectPrinter = async function() { await connectQZ(); };
+
+        async function printWithQZ(order) {
+            if (!qzConnected || !qzPrinterName) return false;
+            try {
+                const time   = order.createdAt ? new Date(order.createdAt) : new Date();
+                const config = qz.configs.create(qzPrinterName);
+                const data   = [
+                    '\x1B\x40',
+                    '\x1B\x61\x01',
+                    '\x1B\x21\x18',
+                    'MASA ' + order.masa + '\n',
+                    '\x1B\x21\x00',
+                    'Pool Snack & Bar\n',
+                    '--------------------------------\n',
+                    '\x1B\x61\x00',
+                    ...(order.items || []).map(i => (i.qty + 'x').padEnd(5) + i.name + '\n'),
+                    '--------------------------------\n',
+                    time.toLocaleString('tr-TR') + '\n',
+                    '\n\n\n',
+                    '\x1D\x56\x42\x00',
+                ];
+                await qz.print(config, data);
+                return true;
+            } catch(e) {
+                console.error('QZ print:', e);
+                return false;
+            }
         }
 
         function printOrderFallback(order) {
@@ -939,40 +953,24 @@
         window.printOrder = async function(id) {
             const order = allOrders.find(o => o.id === id);
             if (!order) return;
-
-            if (printerPort) {
-                try {
-                    const encoder = new TextEncoder();
-                    const writer  = printerPort.writable.getWriter();
-                    await writer.write(encoder.encode(buildReceiptText(order)));
-                    writer.releaseLock();
-                    showToast('🖨️ Yazdırıldı', `Masa ${order.masa} fişi gönderildi.`);
-                    return;
-                } catch(e) {
-                    showToast('⚠️ Yazıcı Hatası', 'Tarayıcı yazdırmaya geçildi.');
-                }
+            if (qzConnected) {
+                const ok = await printWithQZ(order);
+                if (ok) { showToast('🖨️ Yazdırıldı', `Masa ${order.masa} fişi gönderildi.`); return; }
             }
             printOrderFallback(order);
         };
 
         // Yeni sipariş geldiğinde otomatik yazdırma
         async function printOrderSilently(order) {
-            if (printerPort) {
-                // Web Serial bağlıysa oraya gönder
-                try {
-                    const encoder = new TextEncoder();
-                    const writer  = printerPort.writable.getWriter();
-                    await writer.write(encoder.encode(buildReceiptText(order)));
-                    writer.releaseLock();
-                    showToast('🖨️ Otomatik Yazdırıldı', `Masa ${order.masa} — yeni sipariş.`);
-                    return;
-                } catch(e) {
-                    console.log('Serial yazıcı hatası, fallback deneniyor', e);
-                }
+            if (qzConnected) {
+                const ok = await printWithQZ(order);
+                if (ok) { showToast('🖨️ Otomatik Yazdırıldı', `Masa ${order.masa} — yeni sipariş.`); return; }
             }
-            // Web Serial yoksa tarayıcı yazdırması (--kiosk-printing ile onaysız çalışır)
             printOrderFallback(order);
         }
+
+        // Sayfa açılınca QZ Tray'e otomatik bağlan
+        setTimeout(async () => { try { await connectQZ(); } catch(e) {} }, 1500);
 
         // ── REALTİME DİNLEYİCİ — SİPARİŞLER ────────────────────────
         const ordersQ = query(collection(db, 'orders'), orderBy('timestamp', 'desc'));
