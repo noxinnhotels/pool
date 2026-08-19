@@ -904,6 +904,7 @@
                     td { padding:2px 0; }
                     td:first-child { width:28px; font-weight:bold; }
                     .time { font-size:11px; margin-top:4px; }
+                    @media print { body { width:200px; } }
                 </style></head>
                 <body>
                     <h2>MASA ${order.masa}</h2>
@@ -913,10 +914,8 @@
                     <hr>
                     <div class="time">${time.toLocaleString('tr-TR')}</div>
                     <br><br>
-                    <script>window.onload=function(){window.print();}<\/script>
                 </body></html>`;
 
-            // Gizli iframe ile yazdır — popup engelleyicisinden etkilenmez
             let iframe = document.getElementById('printFrame');
             if (!iframe) {
                 iframe = document.createElement('iframe');
@@ -924,6 +923,16 @@
                 iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
                 document.body.appendChild(iframe);
             }
+
+            iframe.onload = function() {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    showToast('🖨️ Yazdırılıyor', `Masa ${order.masa} fişi gönderildi.`);
+                } catch(e) {
+                    showToast('⚠️ Yazdırma Hatası', e.message);
+                }
+            };
             iframe.srcdoc = html;
         }
 
