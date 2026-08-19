@@ -889,31 +889,42 @@
         }
 
         function printOrderFallback(order) {
-            const w = window.open('', '_blank', 'width=320,height=600');
             const time = order.createdAt ? new Date(order.createdAt) : new Date();
             const itemsHtml = (order.items || []).map(i =>
-                `<div style="display:flex;justify-content:space-between;padding:3px 0">
-                    <span>${i.qty}x ${i.name}</span>
-                </div>`).join('');
-            w.document.write(`
-                <html><head><title>Fiş — Masa ${order.masa}</title><style>
-                    body { font-family: 'Courier New', monospace; font-size: 14px; width: 280px; padding: 14px; }
-                    h2 { text-align:center; margin:0 0 4px; }
-                    .sub { text-align:center; font-size:12px; color:#666; margin-bottom:8px; }
-                    hr { border-top: 1px dashed #000; }
+                `<tr><td>${i.qty}x</td><td>${i.name}</td></tr>`).join('');
+
+            const html = `
+                <html><head><title>Fiş</title><style>
+                    * { margin:0; padding:0; box-sizing:border-box; }
+                    body { font-family:'Courier New',monospace; font-size:13px; width:200px; padding:8px; }
+                    h2 { text-align:center; font-size:16px; margin-bottom:2px; }
+                    .sub { text-align:center; font-size:11px; margin-bottom:6px; }
+                    hr { border:none; border-top:1px dashed #000; margin:4px 0; }
+                    table { width:100%; }
+                    td { padding:2px 0; }
+                    td:first-child { width:28px; font-weight:bold; }
+                    .time { font-size:11px; margin-top:4px; }
                 </style></head>
                 <body>
                     <h2>MASA ${order.masa}</h2>
                     <div class="sub">Pool Snack & Bar</div>
                     <hr>
-                    ${itemsHtml}
+                    <table>${itemsHtml}</table>
                     <hr>
-                    <div>Saat: ${time.toLocaleString('tr-TR')}</div>
-                </body></html>
-            `);
-            w.document.close();
-            w.focus();
-            setTimeout(() => w.print(), 300);
+                    <div class="time">${time.toLocaleString('tr-TR')}</div>
+                    <br><br>
+                    <script>window.onload=function(){window.print();}<\/script>
+                </body></html>`;
+
+            // Gizli iframe ile yazdır — popup engelleyicisinden etkilenmez
+            let iframe = document.getElementById('printFrame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'printFrame';
+                iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+                document.body.appendChild(iframe);
+            }
+            iframe.srcdoc = html;
         }
 
         window.printOrder = async function(id) {
