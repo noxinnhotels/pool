@@ -307,6 +307,86 @@
         }
 
         .menu-loading { text-align: center; padding: 20px; color: #bbb; font-size: 13px; }
+
+        /* ── SEPET: ÜRÜN ADET SEÇİCİ ── */
+        .menu-item { align-items: center; }
+        .menu-item-info { flex: 1; min-width: 0; }
+        .qty-stepper {
+            display: flex; align-items: center; gap: 8px;
+            flex-shrink: 0; margin-left: 8px;
+        }
+        .qty-btn {
+            width: 28px; height: 28px; border-radius: 50%; border: none;
+            background: #f0f0f0; color: #555; font-size: 16px; font-weight: 800;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; line-height: 1; padding: 0;
+        }
+        .qty-btn:active { transform: scale(0.88); }
+        .qty-btn.plus { background: #0891b2; color: white; }
+        .qty-btn.minus.disabled { opacity: 0.35; pointer-events: none; }
+        .qty-value {
+            min-width: 20px; text-align: center; font-weight: 800; font-size: 15px; color: #222;
+        }
+
+        /* ── YÜZEN SEPET BUTONU ── */
+        .cart-fab {
+            position: fixed; bottom: 22px; right: 22px;
+            width: 58px; height: 58px; border-radius: 50%;
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            color: white; display: none; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 6px 20px rgba(14,116,144,0.4);
+            cursor: pointer; z-index: 999; border: none;
+            transition: transform 0.2s;
+        }
+        .cart-fab.visible { display: flex; }
+        .cart-fab:active { transform: scale(0.93); }
+        .cart-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: #ef4444; color: white; font-size: 11px; font-weight: 800;
+            min-width: 21px; height: 21px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 5px; border: 2px solid white;
+        }
+
+        /* ── SEPET MODAL ── */
+        .cart-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; display: none; align-items: flex-end; justify-content: center;
+        }
+        .cart-overlay.open { display: flex; }
+        .cart-modal {
+            background: white; width: 100%; max-width: 480px;
+            border-radius: 20px 20px 0 0; max-height: 82vh;
+            display: flex; flex-direction: column;
+            animation: cartSlideUp 0.25s ease;
+        }
+        @keyframes cartSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .cart-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid #eee; flex-shrink: 0;
+        }
+        .cart-header h3 { font-size: 17px; font-weight: 800; color: #222; }
+        .cart-close {
+            background: #f5f5f5; border: none; width: 30px; height: 30px;
+            border-radius: 50%; font-size: 16px; color: #999; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cart-body { padding: 4px 20px; overflow-y: auto; flex: 1; }
+        .cart-empty { text-align: center; padding: 40px 20px; color: #bbb; font-size: 13px; }
+        .cart-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 0; border-bottom: 1px solid #f5f5f5;
+        }
+        .cart-item-name { font-size: 14px; font-weight: 700; color: #333; flex: 1; min-width: 0; }
+        .cart-footer { padding: 14px 20px; border-top: 1px solid #eee; flex-shrink: 0; }
+        .cart-send-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: white;
+            font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit;
+            transition: opacity 0.15s;
+        }
+        .cart-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .cart-send-btn:active:not(:disabled) { opacity: 0.85; }
     </style>
 </head>
 <body>
@@ -367,6 +447,26 @@
         <div class="notification-text" id="notificationText"></div>
     </div>
 
+    <!-- YÜZEN SEPET BUTONU -->
+    <button class="cart-fab" id="cartFab" onclick="openCart()">
+        🛒
+        <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+    </button>
+
+    <!-- SEPET MODAL -->
+    <div class="cart-overlay" id="cartOverlay" onclick="if(event.target===this) closeCart()">
+        <div class="cart-modal">
+            <div class="cart-header">
+                <h3 id="cartTitle">🛒 Sepetim</h3>
+                <button class="cart-close" onclick="closeCart()">✕</button>
+            </div>
+            <div class="cart-body" id="cartBody"></div>
+            <div class="cart-footer">
+                <button class="cart-send-btn" id="cartSendBtn" onclick="submitOrder()">Siparişi Gönder</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -388,7 +488,12 @@
                 errorText: 'Bağlantı sorunu. Lütfen tekrar deneyin.',
                 allergenNote: 'Alerjeniniz varsa lütfen garsonumuzu bilgilendirin.',
                 menuTitle: 'İÇECEK MENÜSÜ',
-                cooldown: 's sonra tekrar çağırabilirsiniz'
+                cooldown: 's sonra tekrar çağırabilirsiniz',
+                cartTitle: '🛒 Sepetim',
+                cartEmpty: 'Sepetiniz boş. Menüden ürün ekleyin.',
+                sendOrder: 'Siparişi Gönder',
+                orderSentTitle: '✅ Siparişiniz Alındı!',
+                orderSentText: 'Siparişiniz hazırlanıyor, teşekkürler.'
             },
             en: {
                 flag: '🇬🇧',
@@ -404,7 +509,12 @@
                 errorText: 'Connection problem. Please try again.',
                 allergenNote: 'Please inform our staff if you have any allergies.',
                 menuTitle: 'DRINKS MENU',
-                cooldown: 's later you can call again'
+                cooldown: 's later you can call again',
+                cartTitle: '🛒 My Cart',
+                cartEmpty: 'Your cart is empty. Add items from the menu.',
+                sendOrder: 'Send Order',
+                orderSentTitle: '✅ Order Received!',
+                orderSentText: 'Your order is being prepared, thank you.'
             },
             ru: {
                 flag: '🇷🇺',
@@ -420,7 +530,12 @@
                 errorText: 'Проблема с подключением. Пожалуйста, попробуйте снова.',
                 allergenNote: 'Сообщите нашему персоналу, если у вас есть аллергия.',
                 menuTitle: 'МЕНЮ НАПИТКОВ',
-                cooldown: 'с — повторный вызов доступен через'
+                cooldown: 'с — повторный вызов доступен через',
+                cartTitle: '🛒 Моя корзина',
+                cartEmpty: 'Ваша корзина пуста. Добавьте товары из меню.',
+                sendOrder: 'Отправить заказ',
+                orderSentTitle: '✅ Заказ получен!',
+                orderSentText: 'Ваш заказ готовится, спасибо.'
             },
             de: {
                 flag: '🇩🇪',
@@ -436,7 +551,12 @@
                 errorText: 'Verbindungsproblem. Bitte versuchen Sie es erneut.',
                 allergenNote: 'Bitte informieren Sie unser Personal, wenn Sie Allergien haben.',
                 menuTitle: 'GETRÄNKEKARTE',
-                cooldown: 's — erneuter Ruf möglich'
+                cooldown: 's — erneuter Ruf möglich',
+                cartTitle: '🛒 Mein Warenkorb',
+                cartEmpty: 'Ihr Warenkorb ist leer. Fügen Sie Artikel aus dem Menü hinzu.',
+                sendOrder: 'Bestellung senden',
+                orderSentTitle: '✅ Bestellung erhalten!',
+                orderSentText: 'Ihre Bestellung wird zubereitet, danke.'
             },
             pl: {
                 flag: '🇵🇱',
@@ -452,7 +572,12 @@
                 errorText: 'Problem z połączeniem. Spróbuj ponownie.',
                 allergenNote: 'Poinformuj nasz personel, jeśli masz alergie.',
                 menuTitle: 'MENU NAPOJÓW',
-                cooldown: 's — możesz ponownie wezwać'
+                cooldown: 's — możesz ponownie wezwać',
+                cartTitle: '🛒 Mój koszyk',
+                cartEmpty: 'Twój koszyk jest pusty. Dodaj produkty z menu.',
+                sendOrder: 'Wyślij zamówienie',
+                orderSentTitle: '✅ Zamówienie przyjęte!',
+                orderSentText: 'Twoje zamówienie jest przygotowywane, dziękujemy.'
             },
             fr: {
                 flag: '🇫🇷',
@@ -468,7 +593,12 @@
                 errorText: 'Problème de connexion. Veuillez réessayer.',
                 allergenNote: 'Veuillez informer notre personnel si vous avez des allergies.',
                 menuTitle: 'CARTE DES BOISSONS',
-                cooldown: 's — nouvel appel possible'
+                cooldown: 's — nouvel appel possible',
+                cartTitle: '🛒 Mon panier',
+                cartEmpty: 'Votre panier est vide. Ajoutez des articles du menu.',
+                sendOrder: 'Envoyer la commande',
+                orderSentTitle: '✅ Commande reçue !',
+                orderSentText: 'Votre commande est en préparation, merci.'
             },
             nl: {
                 flag: '🇳🇱',
@@ -484,7 +614,12 @@
                 errorText: 'Verbindingsprobleem. Probeer het opnieuw.',
                 allergenNote: 'Informeer ons personeel als u allergieën heeft.',
                 menuTitle: 'DRANKENMENU',
-                cooldown: 's — opnieuw oproepen mogelijk'
+                cooldown: 's — opnieuw oproepen mogelijk',
+                cartTitle: '🛒 Mijn winkelwagen',
+                cartEmpty: 'Uw winkelwagen is leeg. Voeg items toe vanuit het menu.',
+                sendOrder: 'Bestelling versturen',
+                orderSentTitle: '✅ Bestelling ontvangen!',
+                orderSentText: 'Uw bestelling wordt voorbereid, dank u.'
             },
             cs: {
                 flag: '🇨🇿',
@@ -500,7 +635,12 @@
                 errorText: 'Problém s připojením. Zkuste to prosím znovu.',
                 allergenNote: 'Informujte prosím náš personál, pokud máte alergie.',
                 menuTitle: 'NÁPOJOVÝ LÍSTEK',
-                cooldown: 's — lze znovu zavolat'
+                cooldown: 's — lze znovu zavolat',
+                cartTitle: '🛒 Můj košík',
+                cartEmpty: 'Váš košík je prázdný. Přidejte položky z menu.',
+                sendOrder: 'Odeslat objednávku',
+                orderSentTitle: '✅ Objednávka přijata!',
+                orderSentText: 'Vaše objednávka se připravuje, děkujeme.'
             },
             ro: {
                 flag: '🇷🇴',
@@ -516,7 +656,12 @@
                 errorText: 'Problemă de conexiune. Vă rugăm să încercați din nou.',
                 allergenNote: 'Vă rugăm să informați personalul nostru dacă aveți alergii.',
                 menuTitle: 'MENIU BĂUTURI',
-                cooldown: 's — puteți apela din nou'
+                cooldown: 's — puteți apela din nou',
+                cartTitle: '🛒 Coșul meu',
+                cartEmpty: 'Coșul dvs. este gol. Adăugați produse din meniu.',
+                sendOrder: 'Trimite comanda',
+                orderSentTitle: '✅ Comandă primită!',
+                orderSentText: 'Comanda dvs. este în pregătire, mulțumim.'
             }
         };
 
@@ -535,6 +680,8 @@
         const db = getFirestore(app);
 
         let menuReady = false;
+        let cart       = {};   // { itemId: { name, qty } }
+        let cartOpen   = false;
 
         // URL'den masa numarasını al
         const urlParams = new URLSearchParams(window.location.search);
@@ -569,6 +716,11 @@
             document.getElementById('tableLabel').textContent = t.tableLabel;
             document.getElementById('btnWaiter').textContent = t.btnWaiter;
             document.getElementById('statusTitle').textContent = t.statusTitle;
+
+            // Sepet metinlerini güncelle
+            document.getElementById('cartTitle').textContent = t.cartTitle;
+            document.getElementById('cartSendBtn').textContent = t.sendOrder;
+            if (cartOpen) renderCartBody();
             
             // HTML lang attribute'unu güncelle
             document.documentElement.lang = lang;
@@ -818,11 +970,17 @@
             const lang = currentLang || 'tr';
             const name = (item.names && (item.names[lang] || item.names['en'] || item.names['tr'])) || item.name || '';
             const desc = (item.descs && (item.descs[lang] || item.descs['en'] || item.descs['tr'])) || item.desc || '';
-            return `<div class="menu-item">
+            const qty  = cart[item.id]?.qty || 0;
+            return `<div class="menu-item" data-item-id="${item.id}">
                 <div class="menu-dot"></div>
-                <div>
+                <div class="menu-item-info">
                     <div class="menu-item-name">${name}</div>
                     ${desc ? `<div class="menu-item-desc">${desc}</div>` : ''}
+                </div>
+                <div class="qty-stepper">
+                    <button class="qty-btn minus ${qty === 0 ? 'disabled' : ''}" onclick="changeQty('${item.id}', '${name.replace(/'/g,"\\'")}', -1)">−</button>
+                    <span class="qty-value">${qty}</span>
+                    <button class="qty-btn plus" onclick="changeQty('${item.id}', '${name.replace(/'/g,"\\'")}', 1)">+</button>
                 </div>
             </div>`;
         }
@@ -832,6 +990,110 @@
             document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
             renderMenuList();
+        };
+
+        // ── SEPET FONKSİYONLARI ──────────────────────────────────
+        window.changeQty = function(itemId, itemName, delta) {
+            const current = cart[itemId]?.qty || 0;
+            const next = Math.max(0, current + delta);
+
+            if (next === 0) {
+                delete cart[itemId];
+            } else {
+                cart[itemId] = { name: itemName, qty: next };
+            }
+
+            // Menü listesindeki adet göstergesini güncelle
+            const qtyEl = document.getElementById('qty_' + itemId);
+            if (qtyEl) qtyEl.textContent = next;
+            const menuItemEl = document.querySelector(`.menu-item[data-item-id="${itemId}"]`);
+            if (menuItemEl) {
+                const minusBtn = menuItemEl.querySelector('.qty-btn.minus');
+                if (minusBtn) minusBtn.classList.toggle('disabled', next === 0);
+            }
+
+            updateCartFab();
+            if (cartOpen) renderCartBody();
+        };
+
+        function updateCartFab() {
+            const totalQty = Object.values(cart).reduce((sum, i) => sum + i.qty, 0);
+            const badge = document.getElementById('cartBadge');
+            const fab   = document.getElementById('cartFab');
+            if (totalQty > 0) {
+                fab.classList.add('visible');
+                badge.style.display = 'flex';
+                badge.textContent = totalQty;
+            } else {
+                fab.classList.remove('visible');
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderCartBody() {
+            const body    = document.getElementById('cartBody');
+            const sendBtn = document.getElementById('cartSendBtn');
+            const t       = translations[currentLang] || translations['tr'];
+            const entries = Object.entries(cart);
+
+            if (entries.length === 0) {
+                body.innerHTML = `<div class="cart-empty">${t.cartEmpty}</div>`;
+                sendBtn.disabled = true;
+                return;
+            }
+
+            sendBtn.disabled = false;
+            body.innerHTML = entries.map(([id, item]) => `
+                <div class="cart-item">
+                    <div class="cart-item-name">${item.name}</div>
+                    <div class="qty-stepper">
+                        <button class="qty-btn minus" onclick="changeQty('${id}', '${item.name.replace(/'/g,"\\'")}', -1)">−</button>
+                        <span class="qty-value">${item.qty}</span>
+                        <button class="qty-btn plus" onclick="changeQty('${id}', '${item.name.replace(/'/g,"\\'")}', 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.openCart = function() {
+            cartOpen = true;
+            renderCartBody();
+            document.getElementById('cartOverlay').classList.add('open');
+        };
+
+        window.closeCart = function() {
+            cartOpen = false;
+            document.getElementById('cartOverlay').classList.remove('open');
+        };
+
+        window.submitOrder = async function() {
+            const entries = Object.entries(cart);
+            if (entries.length === 0) return;
+
+            const t       = translations[currentLang] || translations['tr'];
+            const sendBtn = document.getElementById('cartSendBtn');
+            sendBtn.disabled = true;
+
+            try {
+                await addDoc(collection(db, "orders"), {
+                    masa: masaNumarasi,
+                    items: entries.map(([id, item]) => ({ id, name: item.name, qty: item.qty })),
+                    status: 'pending',
+                    language: currentLang,
+                    timestamp: serverTimestamp(),
+                    createdAt: new Date().toISOString()
+                });
+
+                cart = {};
+                updateCartFab();
+                closeCart();
+                renderMenuList(); // adet göstergelerini sıfırla
+                showNotification(t.orderSentTitle, t.orderSentText, 'success');
+            } catch (error) {
+                console.error('❌ Sipariş hatası:', error);
+                showNotification(t.errorTitle, t.errorText, 'info');
+                sendBtn.disabled = false;
+            }
         };
         // ── MENÜ SONU ──────────────────────────────────────────
     </script>
