@@ -935,18 +935,23 @@
             printOrderFallback(order);
         };
 
-        // Yeni sipariş geldiğinde otomatik yazdırma (sadece bağlı termal yazıcıya)
+        // Yeni sipariş geldiğinde otomatik yazdırma
         async function printOrderSilently(order) {
-            if (!printerPort) return;
-            try {
-                const encoder = new TextEncoder();
-                const writer  = printerPort.writable.getWriter();
-                await writer.write(encoder.encode(buildReceiptText(order)));
-                writer.releaseLock();
-                showToast('🖨️ Otomatik Yazdırıldı', `Masa ${order.masa} — yeni sipariş.`);
-            } catch(e) {
-                console.log('Otomatik yazdırma hatası', e);
+            if (printerPort) {
+                // Web Serial bağlıysa oraya gönder
+                try {
+                    const encoder = new TextEncoder();
+                    const writer  = printerPort.writable.getWriter();
+                    await writer.write(encoder.encode(buildReceiptText(order)));
+                    writer.releaseLock();
+                    showToast('🖨️ Otomatik Yazdırıldı', `Masa ${order.masa} — yeni sipariş.`);
+                    return;
+                } catch(e) {
+                    console.log('Serial yazıcı hatası, fallback deneniyor', e);
+                }
             }
+            // Web Serial yoksa tarayıcı yazdırması (--kiosk-printing ile onaysız çalışır)
+            printOrderFallback(order);
         }
 
         // ── REALTİME DİNLEYİCİ — SİPARİŞLER ────────────────────────
@@ -963,7 +968,7 @@
                 fresh.forEach(o => knownOrderIds.add(o.id));
                 newOrders.forEach(o => knownOrderIds.add(o.id)); // tamamlanan/silinmiş id'leri de işaretle
 
-                if (autoPrintEnabled && printerPort) {
+                if (autoPrintEnabled) {
                     fresh.forEach(o => printOrderSilently(o));
                 }
             }
