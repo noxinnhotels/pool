@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Snack & Bar - Garson Paneli</title>
-    <!-- QZ Tray -->
-    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -204,40 +202,6 @@
             animation: pulse 2s infinite;
         }
 
-        /* ── SİPARİŞ KARTLARI ── */
-        .order-items {
-            margin: 4px 0 12px;
-            border-top: 1px solid #f0f0f0;
-            border-bottom: 1px solid #f0f0f0;
-            padding: 8px 0;
-        }
-        .order-item-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 5px 0; font-size: 14px;
-        }
-        .order-item-qty {
-            background: #0891b2; color: white;
-            font-weight: 800; font-size: 13px;
-            min-width: 30px; height: 26px;
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .order-item-name { font-weight: 600; color: #333; }
-
-        .action-btn.print { background: #0891b2; color: white; }
-        .action-btn.print:hover { background: #0e7490; }
-
-        .printer-status {
-            display: flex; align-items: center; gap: 6px;
-            padding: 8px 14px; border-radius: 10px;
-            font-size: 13px; font-weight: 600;
-            background: #f0f0f0; color: #999; cursor: pointer;
-            border: none; font-family: inherit; transition: all 0.2s;
-        }
-        .printer-status.connected { background: #d1fae5; color: #059669; }
-        .printer-status:hover { opacity: 0.85; }
-
         /* MASA GRUBU GÖRÜNÜMÜ */
         .masa-group {
             background: white;
@@ -425,10 +389,6 @@
                     <div class="label">Toplam</div>
                     <div class="value" id="totalCount">0</div>
                 </div>
-                <div class="stat-box pending">
-                    <div class="label">Bekleyen Sipariş</div>
-                    <div class="value" id="pendingOrderCount">0</div>
-                </div>
             </div>
         </div>
 
@@ -442,19 +402,11 @@
             <div class="view-toggle">
                 <button class="view-btn active" id="viewCards"   onclick="setView('cards')">🃏 Kartlar</button>
                 <button class="view-btn"         id="viewMasa"    onclick="setView('masa')">🪑 Masa Grubu</button>
-                <button class="view-btn"         id="viewOrders"  onclick="setView('orders')">🧾 Siparişler</button>
             </div>
 
             <div class="sound-toggle">
                 <input type="checkbox" id="soundToggle" checked>
                 <label for="soundToggle">🔊 Ses</label>
-            </div>
-
-            <button class="printer-status" id="printerBtn" onclick="connectPrinter()">🖨️ Yazıcı Bağla</button>
-
-            <div class="sound-toggle">
-                <input type="checkbox" id="autoPrintToggle" checked>
-                <label for="autoPrintToggle">🖨️ Yeni siparişi otomatik yazdır</label>
             </div>
 
             <button class="btn btn-secondary" onclick="clearCompleted()">🗑️ Tamamlananları Temizle</button>
@@ -491,11 +443,6 @@
         let soundEnabled    = true;
         let lastPendingCount = 0;
         let allRequests     = [];
-        let allOrders       = [];
-        let lastOrderPendingCount = 0;
-        let printerPort     = null;
-        let autoPrintEnabled = true;
-        let knownOrderIds   = null; // null = henüz ilk yükleme yapılmadı
 
         // ── SES ──────────────────────────────────────────────────
         function playNotificationSound() {
@@ -560,26 +507,10 @@
             lastPendingCount = pending;
         }
 
-        // ── SİPARİŞ İSTATİSTİKLERİ ────────────────────────────────
-        function updateOrderStats() {
-            const pending = allOrders.filter(o => o.status === 'pending').length;
-            document.getElementById('pendingOrderCount').textContent = pending;
-
-            if (pending > lastOrderPendingCount) {
-                playNotificationSound();
-                const newest = allOrders.filter(o => o.status === 'pending')[0];
-                if (newest) {
-                    const itemSummary = newest.items.map(i => `${i.qty}x ${i.name}`).join(', ');
-                    showToast('🧾 Yeni Sipariş!', `Masa ${newest.masa} — ${itemSummary}`);
-                }
-            }
-            lastOrderPendingCount = pending;
-        }
-
         // ── GÖRÜNÜM TOGGLE ────────────────────────────────────────
         window.setView = function(mode) {
             viewMode = mode;
-            ['cards','masa','orders'].forEach(v => {
+            ['cards','masa','history'].forEach(v => {
                 document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1))
                     .classList.toggle('active', v === mode);
             });
@@ -590,16 +521,6 @@
         function renderRequests() {
             const grid = document.getElementById('requestsGrid');
             updateStats();
-            updateOrderStats();
-
-            if (viewMode === 'orders') {
-                grid.style.gridTemplateColumns = '';
-                let filteredOrders = allOrders;
-                if (currentFilter === 'pending')   filteredOrders = allOrders.filter(o => o.status === 'pending');
-                if (currentFilter === 'completed') filteredOrders = allOrders.filter(o => o.status === 'completed');
-                renderOrdersView(grid, filteredOrders);
-                return;
-            }
 
             let filtered = allRequests;
             if (currentFilter === 'pending')   filtered = allRequests.filter(r => r.status === 'pending');
@@ -657,61 +578,6 @@
                     <div class="card-actions">
                         <button class="action-btn delete" style="flex:1" onclick="deleteRequest('${req.id}')">🗑️ Sil</button>
                     </div>`}
-                </div>`;
-            }).join('');
-        }
-
-        // ── SİPARİŞLER GÖRÜNÜMÜ ───────────────────────────────────
-        function renderOrdersView(grid, filtered) {
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-                    <div class="emoji">🧾</div><h2>Henüz sipariş yok</h2>
-                    <p>Yeni siparişler burada görünecek</p></div>`;
-                return;
-            }
-
-            grid.innerHTML = filtered.map(order => {
-                const sec    = elapsed(order);
-                const tClass = sec >= 600 ? 'danger' : '';
-                const isNew  = sec < 10 && order.status === 'pending';
-                const itemsHTML = (order.items || []).map(i => `
-                    <div class="order-item-row">
-                        <div class="order-item-qty">${i.qty}x</div>
-                        <div class="order-item-name">${i.name}</div>
-                    </div>`).join('');
-
-                return `<div class="request-card ${order.status}">
-                    <div class="card-header">
-                        <div class="masa-info">
-                            <div class="masa-number">${order.masa}</div>
-                            <div class="request-type">
-                                <div class="emoji">🧾</div>
-                                <div class="type-label">Sipariş</div>
-                            </div>
-                        </div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-                            ${isNew ? '<span class="new-badge">YENİ</span>' : ''}
-                            <div class="timer-badge ${tClass}">⏱️ ${formatTime(sec)}</div>
-                        </div>
-                    </div>
-                    <div class="order-items">${itemsHTML}</div>
-                    <div class="card-body">
-                        <div class="info-row">
-                            <span class="info-label">Saat:</span>
-                            <span class="info-value">${timeStr(order)}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Durum:</span>
-                            <span class="info-value">${order.status === 'pending' ? '⏳ Bekliyor' : '✅ Tamamlandı'}</span>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="action-btn print" onclick="printOrder('${order.id}')">🖨️ Yazdır</button>
-                        ${order.status === 'pending'
-                            ? `<button class="action-btn complete" onclick="completeOrder('${order.id}')">✓ Tamamla</button>`
-                            : ''}
-                        <button class="action-btn delete" onclick="deleteOrder('${order.id}')">🗑️</button>
-                    </div>
                 </div>`;
             }).join('');
         }
@@ -818,185 +684,12 @@
         };
 
         window.clearCompleted = async function() {
-            if (viewMode === 'orders') {
-                if (!confirm('Tamamlanan tüm siparişleri silmek istediğinizden emin misiniz?')) return;
-                for (const o of allOrders.filter(o => o.status === 'completed')) {
-                    try { await deleteDoc(doc(db, 'orders', o.id)); } catch(e) {}
-                }
-                showToast('🗑️ Temizlendi', 'Tamamlanan siparişler silindi.');
-                return;
-            }
             if (!confirm('Tamamlanan tüm talepleri silmek istediğinizden emin misiniz?')) return;
             for (const req of allRequests.filter(r => r.status === 'completed')) {
                 try { await deleteDoc(doc(db, 'requests', req.id)); } catch(e) {}
             }
             showToast('🗑️ Temizlendi', 'Tamamlanan talepler silindi.');
         };
-
-        // ── SİPARİŞ İŞLEMLERİ ─────────────────────────────────────
-        window.completeOrder = async function(id) {
-            try {
-                await updateDoc(doc(db, 'orders', id), {
-                    status: 'completed', completedAt: new Date().toISOString()
-                });
-                showToast('✅ Tamamlandı', 'Sipariş tamamlandı.');
-            } catch(e) { showToast('⚠️ Hata', 'İşlem başarısız.'); }
-        };
-
-        window.deleteOrder = async function(id) {
-            if (!confirm('Bu siparişi silmek istediğinizden emin misiniz?')) return;
-            try {
-                await deleteDoc(doc(db, 'orders', id));
-                showToast('🗑️ Silindi', 'Sipariş silindi.');
-            } catch(e) { showToast('⚠️ Hata', 'Silme başarısız.'); }
-        };
-
-        // ── QZ TRAY YAZICI ─────────────────────────────────────────
-        let qzConnected    = false;
-        let qzPrinterName  = null;
-
-        async function connectQZ() {
-            try {
-                if (!qz.websocket.isActive()) {
-                    await qz.websocket.connect();
-                }
-                qzPrinterName = await qz.printers.getDefault();
-                qzConnected   = true;
-                document.getElementById('printerBtn').textContent = '🖨️ ' + qzPrinterName;
-                document.getElementById('printerBtn').classList.add('connected');
-                showToast('🖨️ Bağlandı', qzPrinterName + ' hazır.');
-            } catch(e) {
-                qzConnected = false;
-                showToast('⚠️ QZ Tray Hatası', 'QZ Tray sistem tepsisinde çalışıyor mu?');
-                console.error('QZ Tray:', e);
-            }
-        }
-
-        window.connectPrinter = async function() { await connectQZ(); };
-
-        async function printWithQZ(order) {
-            if (!qzConnected || !qzPrinterName) return false;
-            try {
-                const time   = order.createdAt ? new Date(order.createdAt) : new Date();
-                const config = qz.configs.create(qzPrinterName);
-                const data   = [
-                    '\x1B\x40',
-                    '\x1B\x61\x01',
-                    '\x1B\x21\x18',
-                    'MASA ' + order.masa + '\n',
-                    '\x1B\x21\x00',
-                    'Pool Snack & Bar\n',
-                    '--------------------------------\n',
-                    '\x1B\x61\x00',
-                    ...(order.items || []).map(i => (i.qty + 'x').padEnd(5) + i.name + '\n'),
-                    '--------------------------------\n',
-                    time.toLocaleString('tr-TR') + '\n',
-                    '\n\n\n',
-                    '\x1D\x56\x42\x00',
-                ];
-                await qz.print(config, data);
-                return true;
-            } catch(e) {
-                console.error('QZ print:', e);
-                return false;
-            }
-        }
-
-        function printOrderFallback(order) {
-            const time = order.createdAt ? new Date(order.createdAt) : new Date();
-            const itemsHtml = (order.items || []).map(i =>
-                `<tr><td>${i.qty}x</td><td>${i.name}</td></tr>`).join('');
-
-            const html = `
-                <html><head><title>Fiş</title><style>
-                    * { margin:0; padding:0; box-sizing:border-box; }
-                    body { font-family:'Courier New',monospace; font-size:13px; width:200px; padding:8px; }
-                    h2 { text-align:center; font-size:16px; margin-bottom:2px; }
-                    .sub { text-align:center; font-size:11px; margin-bottom:6px; }
-                    hr { border:none; border-top:1px dashed #000; margin:4px 0; }
-                    table { width:100%; }
-                    td { padding:2px 0; }
-                    td:first-child { width:28px; font-weight:bold; }
-                    .time { font-size:11px; margin-top:4px; }
-                    @media print { body { width:200px; } }
-                </style></head>
-                <body>
-                    <h2>MASA ${order.masa}</h2>
-                    <div class="sub">Pool Snack & Bar</div>
-                    <hr>
-                    <table>${itemsHtml}</table>
-                    <hr>
-                    <div class="time">${time.toLocaleString('tr-TR')}</div>
-                    <br><br>
-                </body></html>`;
-
-            let iframe = document.getElementById('printFrame');
-            if (!iframe) {
-                iframe = document.createElement('iframe');
-                iframe.id = 'printFrame';
-                iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
-                document.body.appendChild(iframe);
-            }
-
-            iframe.onload = function() {
-                try {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    showToast('🖨️ Yazdırılıyor', `Masa ${order.masa} fişi gönderildi.`);
-                } catch(e) {
-                    showToast('⚠️ Yazdırma Hatası', e.message);
-                }
-            };
-            iframe.srcdoc = html;
-        }
-
-        window.printOrder = async function(id) {
-            const order = allOrders.find(o => o.id === id);
-            if (!order) return;
-            if (qzConnected) {
-                const ok = await printWithQZ(order);
-                if (ok) { showToast('🖨️ Yazdırıldı', `Masa ${order.masa} fişi gönderildi.`); return; }
-            }
-            printOrderFallback(order);
-        };
-
-        // Yeni sipariş geldiğinde otomatik yazdırma
-        async function printOrderSilently(order) {
-            if (qzConnected) {
-                const ok = await printWithQZ(order);
-                if (ok) { showToast('🖨️ Otomatik Yazdırıldı', `Masa ${order.masa} — yeni sipariş.`); return; }
-            }
-            printOrderFallback(order);
-        }
-
-        // Sayfa açılınca QZ Tray'e otomatik bağlan
-        setTimeout(async () => { try { await connectQZ(); } catch(e) {} }, 1500);
-
-        // ── REALTİME DİNLEYİCİ — SİPARİŞLER ────────────────────────
-        const ordersQ = query(collection(db, 'orders'), orderBy('timestamp', 'desc'));
-        onSnapshot(ordersQ, snap => {
-            const newOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            if (knownOrderIds === null) {
-                // İlk yükleme — mevcut siparişleri "bilinen" say, yazdırma
-                knownOrderIds = new Set(newOrders.map(o => o.id));
-            } else {
-                // Yeni gelen bekleyen siparişleri tespit et
-                const fresh = newOrders.filter(o => o.status === 'pending' && !knownOrderIds.has(o.id));
-                fresh.forEach(o => knownOrderIds.add(o.id));
-                newOrders.forEach(o => knownOrderIds.add(o.id)); // tamamlanan/silinmiş id'leri de işaretle
-
-                if (autoPrintEnabled) {
-                    fresh.forEach(o => printOrderSilently(o));
-                }
-            }
-
-            allOrders = newOrders;
-            renderRequests();
-            cleanupCompletedOrders();
-        }, err => {
-            console.log('orders dinleme hatası', err);
-        });
 
         // ── REALTİME DİNLEYİCİ ───────────────────────────────────
         const q = query(collection(db, 'requests'), orderBy('timestamp', 'desc'));
@@ -1025,11 +718,6 @@
             soundEnabled = e.target.checked;
         });
 
-        // Otomatik yazdırma toggle
-        document.getElementById('autoPrintToggle').addEventListener('change', e => {
-            autoPrintEnabled = e.target.checked;
-        });
-
         // Otomatik yenileme (kronometreler için)
         setInterval(() => { if (allRequests.length > 0) renderRequests(); }, 1000);
 
@@ -1052,25 +740,6 @@
         }
 
         setInterval(cleanupCompleted, 30 * 1000); // her 30 saniyede kontrol et
-
-        // Tamamlanan siparişleri 10 dakika sonra otomatik sil
-        async function cleanupCompletedOrders() {
-            const TEN_MIN = 10 * 60 * 1000;
-            const now = Date.now();
-            const expired = allOrders.filter(o => {
-                if (o.status !== 'completed') return false;
-                if (!o.completedAt) return true;
-                const t = new Date(o.completedAt).getTime();
-                if (isNaN(t)) return true;
-                return (now - t) >= TEN_MIN;
-            });
-            for (const o of expired) {
-                try { await deleteDoc(doc(db, 'orders', o.id)); } catch(e) {}
-            }
-            if (expired.length > 0) console.log(`🗑️ ${expired.length} eski sipariş silindi`);
-        }
-
-        setInterval(cleanupCompletedOrders, 30 * 1000); // her 30 saniyede kontrol et
     </script>
 </body>
 </html>
